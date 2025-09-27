@@ -1,15 +1,14 @@
-name: Ingest (Phase 1 seed)
+name: Ingest (Phase 1)
 
 on:
   workflow_dispatch: {}
   schedule:
-    # UTC times -> 06:15 & 18:15 IST ≈ 00:45 & 12:45 UTC
-    - cron: "45 0,12 * * *"
+    - cron: "45 0,12 * * *"   # 06:15 & 18:15 IST
 
 jobs:
-  seed-companies:
+  seed-and-ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
@@ -23,7 +22,10 @@ jobs:
           python-version: "3.11"
 
       - name: Install deps
-        run: pip install requests
+        run: pip install requests beautifulsoup4
 
       - name: Seed companies from config/firms.csv
         run: python tools/seed_companies.py
+
+      - name: Ingest jobs from sources.csv (Barclays now; more later)
+        run: python tools/ingest_jobs.py
