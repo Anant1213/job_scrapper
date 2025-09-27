@@ -1,7 +1,7 @@
 name: Ingest (Phase 1)
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
   schedule:
     - cron: "45 0,12 * * *"   # 06:15 & 18:15 IST
 
@@ -12,22 +12,19 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
-      PYTHONPATH: ${{ github.workspace }}   # 👈 ensure 'tools' & 'connectors' are importable
+      PYTHONPATH: ${{ github.workspace }}   # make 'tools' & 'connectors' importable
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show repo tree (debug once)
+      - name: Show repo tree (quick debug)
         run: |
           pwd
           ls -R
           python -V
-          python - << 'PY'
-import sys, os
-print("PYTHONPATH:", os.environ.get("PYTHONPATH"))
-print("sys.path:")
-for p in sys.path: print(" -", p)
-PY
+          python -c "import sys,os; print('PYTHONPATH=', os.environ.get('PYTHONPATH')); \
+          print('sys.path='); [print(' -', p) for p in sys.path]"
+          test -f config/sources.csv && echo "sources.csv OK" || (echo "sources.csv MISSING"; exit 1)
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -38,7 +35,7 @@ PY
         run: pip install requests beautifulsoup4
 
       - name: Seed companies from config/firms.csv
-        run: python -m tools.seed_companies     # 👈 run as module
+        run: python -m tools.seed_companies
 
       - name: Ingest jobs from sources.csv (Barclays now; more later)
-        run: python -m tools.ingest_jobs       # 👈 run as module
+        run: python -m tools.ingest_jobs
