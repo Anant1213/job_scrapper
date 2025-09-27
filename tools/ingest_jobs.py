@@ -1,48 +1,59 @@
 # tools/ingest_jobs.py
-import os, csv, json, time
+import csv, json, time
 from tools.supabase_client import fetch_companies, upsert_jobs_raw, upsert_jobs
 from tools.normalize import normalize_job, city_passes
 
-# connectors
 from connectors.custom_barclays import fetch as fetch_barclays
 from connectors.workday_cxs import fetch as fetch_workday
 from connectors.greenhouse_board import fetch as fetch_greenhouse
 from connectors.lever_postings import fetch as fetch_lever
 
 def _company_map():
-    by_id = {}
-    for c in fetch_companies():
-        if not c.get("active"): 
-            continue
-        by_id[c["name"]] = c["id"]
-    return by_id
+    return {c["name"]: c["id"] for c in fetch_companies() if c.get("active")}
+
+def _truthy(v, default=True):
+    if v is None or v == "":
+        return default
+    return str(v).strip().lower() in ("true", "1", "yes", "y")
 
 def run_from_sources_csv():
     with open("config/sources.csv", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         companies = _company_map()
         total_jobs = 0
+
         for row in reader:
-            if row.get("active","true").lower() != "true":
+            # Skip comments/blank rows safely
+            company_cell = (row.get("company") or "").strip()
+            if not company_cell or company_cell.startswith("#"):
                 continue
 
-            company = row["company"].strip()
+            if not _truthy(row.get("active"), default=True):
+                continue
+
+            company = company_cell
             company_id = companies.get(company)
             if not company_id:
                 print(f"Skip source for unknown company: {company}")
                 continue
 
-            kind = row["kind"]
-            endpoint = row["endpoint_url"].strip()
+            kind = (row.get("kind") or "").strip()
+            endpoint = (row.get("endpoint_url") or "").strip()
             params = json.loads(row.get("params") or "{}")
-            print(f"[{company}] {kind} -> {endpoint}")
 
+            print(f"[{company}] {kind} -> {endpoint}")
             jobs, raw_payload = [], {}
+
             try:
                 if kind == "barclays_search":
                     data = fetch_barclays(endpoint, max_pages=3)
                 elif kind == "workday_cxs":
-                    data = fetch_workday(endpoint, search_text=params.get("searchText"), limit=params.get("limit", 50), max_pages=params.get("max_pages", 3))
+                    data = fetch_workday(
+                        endpoint,
+                        search_text=params.get("searchText"),
+                        limit=int(params.get("limit", 50)),
+                        max_pages=int(params.get("max_pages", 3)),
+                    )
                 elif kind == "greenhouse_board":
                     data = fetch_greenhouse(endpoint)
                 elif kind == "lever_postings":
@@ -56,7 +67,7 @@ def run_from_sources_csv():
                     loc = d.get("location")
                     if not city_passes(loc):
                         continue
-                    key, rec = normalize_job(
+                    _, rec = normalize_job(
                         company_id=company_id,
                         title=d.get("title"),
                         apply_url=d.get("detail_url"),
@@ -71,11 +82,13 @@ def run_from_sources_csv():
                 print(f"  ! error fetching {company}: {e}")
                 continue
 
+            # audit
             try:
                 upsert_jobs_raw(company_id, None, endpoint, raw_payload)
             except Exception as e:
                 print(f"  ! jobs_raw upsert failed: {e}")
 
+            # normalized
             try:
                 n = upsert_jobs(company_id, jobs)
                 total_jobs += n
