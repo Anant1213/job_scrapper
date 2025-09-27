@@ -1,8 +1,12 @@
 company,ats_type,kind,endpoint_url,params,active
 Barclays,custom,barclays_search,https://search.jobs.barclays/search-jobs/Data%20Science%20Analytics/13015/1?glat=19.1256&glon=72.8925,"{}",true
-#Goldman Sachs,oracle,oracle_cx_search,https://hdpc.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/LateralHiring/search,"{""searchText"": ""data OR machine learning OR quant OR risk"", ""page_size"": 50, ""max_pages"": 3}",true
+Goldman Sachs,custom,goldman_higher,https://higher.gs.com/results?&page=1&sort=RELEVANCE,"{""max_pages"": 4}",true
 
-Goldman Sachs,custom,goldman_higher,https://higher.gs.com/results?search=data&sort=RELEVANCE,"{""max_pages"": 4}",true
+company,ats_type,kind,endpoint_url,params,active
+JPMorgan Chase,workday,workday_cxs,https://wd3.myworkdayjobs.com/wday/cxs/JPMC/Experienced/jobs,"{""searchText"": ""data OR machine learning OR quant OR risk"", ""limit"": 50, ""max_pages"": 3}",true
+Morgan Stanley,workday,workday_cxs,https://wd5.myworkdayjobs.com/wday/cxs/MorganStanley/Experienced_Jobs/jobs,"{""searchText"": ""data OR analytics OR risk"", ""limit"": 50, ""max_pages"": 3}",false
+Wells Fargo,workday,workday_cxs,https://wd1.myworkdayjobs.com/wday/cxs/wf/External_Career/jobs,"{""searchText"": ""data OR analytics OR risk"", ""limit"": 50, ""max_pages"": 3}",false
+
 
 # Turn on more sources ONE-BY-ONE after verifying:
 # Invesco,greenhouse,greenhouse_board,https://boards-api.greenhouse.io/v1/boards/invesco/jobs?content=true,"{}",false
