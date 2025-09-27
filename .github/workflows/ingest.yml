@@ -8,23 +8,16 @@ on:
 jobs:
   seed-and-ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
-      PYTHONPATH: ${{ github.workspace }}   # make 'tools' & 'connectors' importable
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Show repo tree (quick debug)
-        run: |
-          pwd
-          ls -R
-          python -V
-          python -c "import sys,os; print('PYTHONPATH=', os.environ.get('PYTHONPATH')); \
-          print('sys.path='); [print(' -', p) for p in sys.path]"
-          test -f config/sources.csv && echo "sources.csv OK" || (echo "sources.csv MISSING"; exit 1)
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -37,5 +30,8 @@ jobs:
       - name: Seed companies from config/firms.csv
         run: python -m tools.seed_companies
 
-      - name: Ingest jobs from sources.csv (Barclays now; more later)
+      - name: Ingest jobs from sources.csv
         run: python -m tools.ingest_jobs
+
+      - name: Score & send Telegram alerts
+        run: python -m tools.score_and_alert
