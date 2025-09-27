@@ -1,0 +1,7 @@
+{
+  "experience": { "min": 1, "max": 3 },
+  "allowed_cities": ["Mumbai", "Bengaluru", "Bangalore", "Hyderabad", "Pune", "Chennai", "Gurugram", "India", "Remote"],
+  "comp_gate_lpa": 20,
+  "include_remote": true,
+  "firm_gate": { "include_status": ["pass", "probation"] }
+}

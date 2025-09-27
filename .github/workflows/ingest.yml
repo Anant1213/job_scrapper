@@ -1,0 +1,29 @@
+name: Ingest (Phase 1 seed)
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # UTC times -> 06:15 & 18:15 IST ≈ 00:45 & 12:45 UTC
+    - cron: "45 0,12 * * *"
+
+jobs:
+  seed-companies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Seed companies from config/firms.csv
+        run: python tools/seed_companies.py
