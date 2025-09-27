@@ -1,6 +1,7 @@
+# tools/ingest_jobs.py
 import csv, json, time
 from tools.supabase_client import fetch_companies, upsert_jobs_raw, upsert_jobs
-from tools.normalize import normalize_job, city_passes
+from tools.normalize import normalize_job, india_location_ok
 
 from connectors.custom_barclays import fetch as fetch_barclays
 from connectors.workday_cxs import fetch as fetch_workday
@@ -61,9 +62,11 @@ def run_from_sources_csv():
 
                 raw_payload = {"count": len(data)}
                 for d in data:
-                    loc = d.get("location")
-                    if not city_passes(loc):
+                    loc = (d.get("location") or "").strip() or None
+                    # hard India gate: skip if we can't confirm India/city
+                    if not india_location_ok(loc):
                         continue
+
                     _, rec = normalize_job(
                         company_id=company_id,
                         title=d.get("title"),
