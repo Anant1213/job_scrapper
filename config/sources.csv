@@ -1,8 +1,2 @@
 company,ats_type,kind,endpoint_url,params,active
 Barclays,custom,barclays_search,https://search.jobs.barclays/search-jobs/Data%20Science%20Analytics/13015/1?glat=19.1256&glon=72.8925,"{}",true
-# Examples to fill later (leave commented until you add real endpoints/tokens):
-# Morgan Stanley,workday,workday_cxs,https://ms.taleo.net/...,{},false
-# Goldman Sachs,workday,workday_cxs,https://wd1.myworkdayjobs.com/wday/cxs/GoldmanSachs/External/jobs,"{}",false
-# Invesco,greenhouse,greenhouse_board,https://boards-api.greenhouse.io/v1/boards/invesco/jobs?content=true,"{}",false
-# Example Lever: company param goes in endpoint (…/postings/<company>?mode=json)
-# Some firms will be Oracle/others; for those we’ll mark kind=custom and write a small adapter.
