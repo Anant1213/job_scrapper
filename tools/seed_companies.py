@@ -12,6 +12,8 @@ HEADERS = {
     "Authorization": f"Bearer {SERVICE_ROLE}",
     "Content-Type": "application/json",
     "Accept-Profile": "public",
+    # 👇 this makes POST act as UPSERT
+    "Prefer": "resolution=merge-duplicates,return=representation",
 }
 
 def upsert_company(row):
@@ -24,8 +26,7 @@ def upsert_company(row):
         "comp_gate_status": (row.get("comp_gate_status") or "pass"),
     }
     r = requests.post(url, headers=HEADERS, data=json.dumps([payload]), params={"select":"id,name"})
-    if r.status_code not in (200, 201, 204):
-        raise RuntimeError(f"Upsert failed for {payload['name']}: {r.status_code} {r.text}")
+    r.raise_for_status()
     return r.json()[0]["name"] if r.content else payload["name"]
 
 def main():
@@ -37,7 +38,7 @@ def main():
                 continue
             name = upsert_company(row)
             names.append(name)
-            time.sleep(0.2)  # polite
+            time.sleep(0.2)
     print(f"Seeded/updated {len(names)} companies:\n - " + "\n - ".join(names))
 
 if __name__ == "__main__":
