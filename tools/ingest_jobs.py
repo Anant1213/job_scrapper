@@ -1,4 +1,3 @@
-# tools/ingest_jobs.py
 import csv, json, time
 from tools.supabase_client import fetch_companies, upsert_jobs_raw, upsert_jobs
 from tools.normalize import normalize_job, city_passes
@@ -23,11 +22,9 @@ def run_from_sources_csv():
         total_jobs = 0
 
         for row in reader:
-            # Skip comments/blank rows safely
             company_cell = (row.get("company") or "").strip()
             if not company_cell or company_cell.startswith("#"):
                 continue
-
             if not _truthy(row.get("active"), default=True):
                 continue
 
@@ -82,13 +79,11 @@ def run_from_sources_csv():
                 print(f"  ! error fetching {company}: {e}")
                 continue
 
-            # audit
             try:
                 upsert_jobs_raw(company_id, None, endpoint, raw_payload)
             except Exception as e:
                 print(f"  ! jobs_raw upsert failed: {e}")
 
-            # normalized
             try:
                 n = upsert_jobs(company_id, jobs)
                 total_jobs += n

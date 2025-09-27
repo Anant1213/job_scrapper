@@ -1,7 +1,9 @@
-# tools/normalize.py
 import hashlib, re
 
-ALLOWED_CITIES = {"mumbai","bengaluru","bangalore","hyderabad","pune","chennai","gurugram","india","remote"}
+ALLOWED_CITIES = {
+    "mumbai","bengaluru","bangalore","hyderabad","pune","chennai",
+    "gurugram","gurgaon","noida","india","remote"
+}
 EXP_RE = re.compile(r'(\d+)\s*(?:\+|\-)?\s*(?:years?|yrs?)', re.I)
 
 def _hash_key(*parts):
@@ -32,12 +34,11 @@ def normalize_job(company_id: int, title: str, apply_url: str, location: str | N
         "location_city": location,
         "location_country": "India" if location and "india" in location.lower() else None,
         "remote": remote,
-        "posted_at": posted_at,      # DB will accept null/ISO string or leave null
+        "posted_at": posted_at,
         "apply_url": apply_url,
         "description": description,
         "seniority": None,
         "min_exp": min_exp,
         "max_exp": max_exp,
         "ctc_predicted_pass": None
-        # first_seen_at / last_seen_at use DB defaults
     }

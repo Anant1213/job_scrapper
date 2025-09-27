@@ -1,8 +1,3 @@
-# connectors/lever_postings.py
-"""
-Lever Postings API:
-  https://api.lever.co/v0/postings/<company>?mode=json
-"""
 import requests, time
 
 HEADERS = {"User-Agent": "JobScoutBot/0.1 (+github actions)"}

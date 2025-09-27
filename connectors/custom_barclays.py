@@ -1,4 +1,3 @@
-# connectors/custom_barclays.py
 import re, time
 from urllib.parse import urljoin, urlparse
 import requests
@@ -22,25 +21,22 @@ def _next_page_url(current_url: str, next_page_number: int) -> str:
     new_path = "/".join(parts)
     return parsed._replace(path=new_path).geturl()
 
-def fetch(endpoint_url: str, max_pages: int = 2):
-    """Yield dicts: {title, detail_url, location, date_live, description}"""
+def fetch(endpoint_url: str, max_pages: int = 3):
     base = "https://search.jobs.barclays"
-    out = []
-    seen = set()
+    out, seen = [], set()
     for page in range(1, max_pages + 1):
         url = _next_page_url(endpoint_url, page)
         soup = _soup(url)
         for a in soup.find_all("a", href=True):
             href = a["href"]
-            if "/job/" not in href: 
+            if "/job/" not in href:
                 continue
             detail_url = urljoin(base, href)
             title = a.get_text(strip=True)
-            if not title or detail_url in seen: 
+            if not title or detail_url in seen:
                 continue
             seen.add(detail_url)
 
-            # try to grab nearby location and date text
             location, date_live = None, None
             nxt, hops = a.find_next(string=True), 0
             while nxt and hops < 12:
@@ -52,7 +48,6 @@ def fetch(endpoint_url: str, max_pages: int = 2):
                 nxt = nxt.next_element
                 hops += 1
 
-            # fetch detail page (lightweight)
             try:
                 dsoup = _soup(detail_url)
             except Exception:

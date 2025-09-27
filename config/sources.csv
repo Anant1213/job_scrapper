@@ -1,23 +1,10 @@
 company,ats_type,kind,endpoint_url,params,active
 Barclays,custom,barclays_search,https://search.jobs.barclays/search-jobs/Data%20Science%20Analytics/13015/1?glat=19.1256&glon=72.8925,"{}",true
-
-# --- Greenhouse examples (boards token varies by company) ---
-# Invesco (example token 'invesco') – turn on if it responds:
-Invesco,greenhouse,greenhouse_board,https://boards-api.greenhouse.io/v1/boards/invesco/jobs?content=true,"{}",false
-
-# --- Lever examples (company slug varies) ---
-# Example: Some firms' India tech centers use Lever:
-# <Company>,lever,lever_postings,https://api.lever.co/v0/postings/<company>?mode=json,"{}",false
-
-# --- Workday CXS examples (you must discover the exact tenant & site) ---
-# Pattern: https://wdX.myworkdayjobs.com/wday/cxs/<Tenant>/<Site>/jobs
-# How to find: open the firm's careers search page → DevTools → Network → look for a request to ".../wday/cxs/.../jobs"
-# Paste that URL here.
-# Morgan Stanley (EXAMPLE ONLY — replace with the real URL you see in Network):
-Morgan Stanley,workday,workday_cxs,https://wd5.myworkdayjobs.com/wday/cxs/MorganStanley/Experienced_Jobs/jobs,"{""searchText"": ""data OR machine learning OR quant OR risk""}",false
-# Goldman Sachs (EXAMPLE ONLY):
-Goldman Sachs,workday,workday_cxs,https://wd1.myworkdayjobs.com/wday/cxs/GoldmanSachs/External/jobs,"{""searchText"": ""data OR quant OR risk""}",false
-# JPMorgan Chase (EXAMPLE ONLY):
-JPMorgan Chase,workday,workday_cxs,https://wd3.myworkdayjobs.com/wday/cxs/JPMC/Experienced/jobs,"{""searchText"": ""data OR machine learning OR quant OR risk""}",false
-# HSBC (EXAMPLE ONLY):
-HSBC,workday,workday_cxs,https://wd3.myworkdayjobs.com/wday/cxs/HSBC/HSBC_Careers/jobs,"{""searchText"": ""data OR analytics OR risk OR quant""}",false
+# Turn on more sources ONE-BY-ONE after verifying:
+# Invesco,greenhouse,greenhouse_board,https://boards-api.greenhouse.io/v1/boards/invesco/jobs?content=true,"{}",false
+# Morgan Stanley,workday,workday_cxs,https://wd5.myworkdayjobs.com/wday/cxs/MorganStanley/Experienced_Jobs/jobs,"{""searchText"": ""data OR machine learning OR quant OR risk"", ""limit"": 50, ""max_pages"": 3}",false
+# Goldman Sachs,workday,workday_cxs,https://wd1.myworkdayjobs.com/wday/cxs/GoldmanSachs/External/jobs,"{""searchText"": ""data OR quant OR risk"", ""limit"": 50, ""max_pages"": 3}",false
+# JPMorgan Chase,workday,workday_cxs,https://wd3.myworkdayjobs.com/wday/cxs/JPMC/Experienced/jobs,"{""searchText"": ""data OR machine learning OR quant OR risk"", ""limit"": 50, ""max_pages"": 3}",false
+# HSBC,workday,workday_cxs,https://wd3.myworkdayjobs.com/wday/cxs/HSBC/HSBC_Careers/jobs,"{""searchText"": ""data OR analytics OR risk"", ""limit"": 50, ""max_pages"": 3}",false
+# Example Lever:
+# ExampleCo,lever,lever_postings,https://api.lever.co/v0/postings/exampleco?mode=json,"{}",false

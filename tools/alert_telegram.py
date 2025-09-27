@@ -1,4 +1,3 @@
-# tools/alert_telegram.py
 import os, requests
 
 BOT = os.environ.get("TELEGRAM_BOT_TOKEN")

@@ -1,4 +1,3 @@
-# tools/score_and_alert.py
 import os, datetime as dt, urllib.parse, requests
 from tools.scoring import score_job
 from tools.alert_telegram import send as tg_send
@@ -27,9 +26,9 @@ def fetch_recent_jobs(since_minutes=180):
     r.raise_for_status()
     return r.json()
 
-def patch_job_ctc(job_id: int, ctc_pass: bool):
+def patch_job_eval(job_id: int, score: int, ctc_pass: bool):
     url = f"{SUPABASE_URL}/rest/v1/jobs?id=eq.{job_id}"
-    r = requests.patch(url, headers=HDRS, json={"ctc_predicted_pass": ctc_pass})
+    r = requests.patch(url, headers=HDRS, json={"ctc_predicted_pass": ctc_pass, "relevance_score": score})
     r.raise_for_status()
 
 def main():
@@ -38,7 +37,13 @@ def main():
     for j in jobs:
         score, ctc_pass = score_job(j)
 
-        # hard gates: avoid interns/managers; ensure overlap with 1–3 yrs if exp present
+        # Write score + CTC flag for visibility
+        try:
+            patch_job_eval(j["id"], score, ctc_pass)
+        except Exception as e:
+            print("eval patch failed:", e)
+
+        # Hard gates: avoid interns/managers; ensure overlap with 1–3 yrs if exp present
         title_l = (j.get("title") or "").lower()
         if any(x in title_l for x in ["intern","trainee","manager","lead","vp","director","principal","head"]):
             continue
@@ -48,11 +53,6 @@ def main():
             hi = 99 if hi is None else hi
             if not (lo <= 3 and hi >= 1):
                 continue
-
-        try:
-            patch_job_ctc(j["id"], ctc_pass)
-        except Exception as e:
-            print("ctc patch failed:", e)
 
         if score >= 80 and ctc_pass:
             c = (j.get("companies") or {}).get("name", "Company")

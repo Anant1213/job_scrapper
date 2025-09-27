@@ -1,11 +1,3 @@
-# connectors/workday_cxs.py
-"""
-Generic Workday CXS search connector.
-endpoint_url must be a CXS search endpoint, e.g.:
-  https://wd5.myworkdayjobs.com/wday/cxs/<tenant>/<site>/jobs
-We POST {"limit": N, "offset": O, "searchText": "..."} and then
-filter for India/allowed cities on our side.
-"""
 from urllib.parse import urlparse, urljoin
 import requests, time
 
@@ -25,17 +17,12 @@ def fetch(endpoint_url: str, search_text: str | None = None, limit: int = 50, ma
     host = _base_host(endpoint_url)
     offset = 0
     for _ in range(max_pages):
-        body = {
-            "limit": limit,
-            "offset": offset,
-            "searchText": search_text or ""
-        }
+        body = {"limit": limit, "offset": offset, "searchText": search_text or ""}
         r = requests.post(endpoint_url, headers=HEADERS, json=body, timeout=REQ_TIMEOUT)
         r.raise_for_status()
         data = r.json() or {}
         posts = data.get("jobPostings") or []
-        if not posts:
-            break
+        if not posts: break
         for jp in posts:
             title = jp.get("title")
             locations_text = jp.get("locationsText") or jp.get("locations", "")
@@ -43,7 +30,7 @@ def fetch(endpoint_url: str, search_text: str | None = None, limit: int = 50, ma
             apply_url = urljoin(host, external_path)
             req_id = jp.get("id") or None
             posted = jp.get("postedOn") or None
-            description = None  # CXS list doesn’t include full description
+            description = None
             out.append({
                 "title": title,
                 "detail_url": apply_url,
@@ -52,8 +39,7 @@ def fetch(endpoint_url: str, search_text: str | None = None, limit: int = 50, ma
                 "description": description,
                 "req_id": req_id
             })
-        if len(posts) < limit:
-            break
+        if len(posts) < limit: break
         offset += limit
         time.sleep(1.0)
     return out
