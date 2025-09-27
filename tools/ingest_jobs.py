@@ -7,14 +7,18 @@ from connectors.custom_barclays import fetch as fetch_barclays
 from connectors.workday_cxs import fetch as fetch_workday
 from connectors.greenhouse_board import fetch as fetch_greenhouse
 from connectors.lever_postings import fetch as fetch_lever
+from connectors.oracle_cx import fetch as fetch_oracle
+
 
 def _company_map():
     return {c["name"]: c["id"] for c in fetch_companies() if c.get("active")}
+
 
 def _truthy(v, default=True):
     if v is None or v == "":
         return default
     return str(v).strip().lower() in ("true", "1", "yes", "y")
+
 
 def run_from_sources_csv():
     with open("config/sources.csv", newline="", encoding="utf-8") as f:
@@ -44,7 +48,7 @@ def run_from_sources_csv():
 
             try:
                 if kind == "barclays_search":
-                    data = fetch_barclays(endpoint, max_pages=3)
+                    data = fetch_barclays(endpoint, max_pages=int(params.get("max_pages", 3)))
                 elif kind == "workday_cxs":
                     data = fetch_workday(
                         endpoint,
@@ -56,6 +60,13 @@ def run_from_sources_csv():
                     data = fetch_greenhouse(endpoint)
                 elif kind == "lever_postings":
                     data = fetch_lever(endpoint)
+                elif kind == "oracle_cx_search":
+                    data = fetch_oracle(
+                        endpoint,
+                        searchText=params.get("searchText"),
+                        page_size=int(params.get("page_size", 50)),
+                        max_pages=int(params.get("max_pages", 3)),
+                    )
                 else:
                     print(f"  (no handler yet for kind={kind})")
                     continue
@@ -97,6 +108,7 @@ def run_from_sources_csv():
             time.sleep(1)
 
         print(f"Done. Upserted total {total_jobs} jobs.")
+
 
 if __name__ == "__main__":
     run_from_sources_csv()
