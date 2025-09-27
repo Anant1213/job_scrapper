@@ -9,6 +9,7 @@ from connectors.greenhouse_board import fetch as fetch_greenhouse
 from connectors.lever_postings import fetch as fetch_lever
 from connectors.oracle_cx import fetch as fetch_oracle
 
+from connectors.goldman_higher import fetch as fetch_gs_higher
 
 def _company_map():
     return {c["name"]: c["id"] for c in fetch_companies() if c.get("active")}
@@ -60,6 +61,9 @@ def run_from_sources_csv():
                     data = fetch_greenhouse(endpoint)
                 elif kind == "lever_postings":
                     data = fetch_lever(endpoint)
+                elif kind == "goldman_higher":
+                    data = fetch_gs_higher(endpoint, max_pages=int(params.get("max_pages", 3)))
+
                 elif kind == "oracle_cx_search":
                     data = fetch_oracle(
                         endpoint,
