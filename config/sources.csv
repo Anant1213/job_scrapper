@@ -1,18 +1,20 @@
-company,ats_type,kind,endpoint_url,params,active
-Barclays,custom,barclays_search,https://search.jobs.barclays/search-jobs/Data%20Science%20Analytics/13015/1?glat=19.1256&glon=72.8925,"{}",true
-Goldman Sachs,custom,goldman_higher,https://higher.gs.com/results?&page=1&sort=RELEVANCE,"{""max_pages"": 4}",true
-
-company,ats_type,kind,endpoint_url,params,active
-JPMorgan Chase,workday,workday_cxs,https://wd3.myworkdayjobs.com/wday/cxs/JPMC/Experienced/jobs,"{""searchText"": ""data OR machine learning OR quant OR risk"", ""limit"": 50, ""max_pages"": 3}",true
-Morgan Stanley,workday,workday_cxs,https://wd5.myworkdayjobs.com/wday/cxs/MorganStanley/Experienced_Jobs/jobs,"{""searchText"": ""data OR analytics OR risk"", ""limit"": 50, ""max_pages"": 3}",false
-Wells Fargo,workday,workday_cxs,https://wd1.myworkdayjobs.com/wday/cxs/wf/External_Career/jobs,"{""searchText"": ""data OR analytics OR risk"", ""limit"": 50, ""max_pages"": 3}",false
-
-
-# Turn on more sources ONE-BY-ONE after verifying:
-# Invesco,greenhouse,greenhouse_board,https://boards-api.greenhouse.io/v1/boards/invesco/jobs?content=true,"{}",false
-# Morgan Stanley,workday,workday_cxs,https://wd5.myworkdayjobs.com/wday/cxs/MorganStanley/Experienced_Jobs/jobs,"{""searchText"": ""data OR machine learning OR quant OR risk"", ""limit"": 50, ""max_pages"": 3}",false
-# Goldman Sachs,workday,workday_cxs,https://wd1.myworkdayjobs.com/wday/cxs/GoldmanSachs/External/jobs,"{""searchText"": ""data OR quant OR risk"", ""limit"": 50, ""max_pages"": 3}",false
-# JPMorgan Chase,workday,workday_cxs,https://wd3.myworkdayjobs.com/wday/cxs/JPMC/Experienced/jobs,"{""searchText"": ""data OR machine learning OR quant OR risk"", ""limit"": 50, ""max_pages"": 3}",false
-# HSBC,workday,workday_cxs,https://wd3.myworkdayjobs.com/wday/cxs/HSBC/HSBC_Careers/jobs,"{""searchText"": ""data OR analytics OR risk"", ""limit"": 50, ""max_pages"": 3}",false
-# Example Lever:
-# ExampleCo,lever,lever_postings,https://api.lever.co/v0/postings/exampleco?mode=json,"{}",false
+company,kind,endpoint_url,params,active
+Morgan Stanley,workday_cxs,https://ms.wd5.myworkdayjobs.com/wday/cxs/ms/External/jobs,{"limit":50,"max_pages":6,"india_only":true},true
+Goldman Sachs,oracle_cx,https://hdpc.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/LateralHiring/requisitions,{"max_pages":6},true
+JPMorgan Chase,oracle_cx,https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,{"max_pages":6},true
+Citi,citi_custom,https://jobs.citi.com/search-jobs/India/287/1,{"max_pages":10},true
+Barclays,barclays_search,https://search.jobs.barclays/search-jobs/Data%20Science%20Analytics/13015/1?glat=19.1256&glon=72.8925,{"max_pages":5},true
+Deutsche Bank,workday_cxs,https://db.wd3.myworkdayjobs.com/wday/cxs/db/External/jobs,{"limit":50,"max_pages":6,"india_only":true},true
+HSBC,citi_custom,https://mycareer.hsbc.com/en_GB/external?search=India,{"max_pages":6},false
+UBS,taleo_tgnewui,https://jobs.ubs.com/TGnewUI/Search/home/HomeWithPreLoad?partnerid=25008&siteid=5012&PageType=searchResults&SearchType=linkquery&LinkID=4138&locationSearch=India,{"max_pages":5},true
+Wells Fargo,workday_cxs,https://wf.wd1.myworkdayjobs.com/wday/cxs/wf/WellsFargoJobs/jobs,{"limit":50,"max_pages":6,"india_only":true},true
+Standard Chartered,citi_custom,https://jobs.standardchartered.com/search/?q=&locationsearch=India,{"max_pages":6},false
+BNP Paribas,bnpp_group,https://group.bnpparibas/en/careers/all-job-offers/india,{"max_pages":6},true
+Société Générale,taleo_tgnewui,https://careers.societegenerale.com/en/job-search-results?country=India,{"max_pages":4},false
+Nomura,brassring_go,https://careers.nomura.com/Nomura/go/Career-Opportunities-India/9050900/,{"max_pages":6},true
+Macquarie,workday_cxs,https://mq.wd3.myworkdayjobs.com/wday/cxs/mq/CareersatMQ/jobs,{"limit":50,"max_pages":6,"india_only":true},true
+BNY Mellon,oracle_cx,https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,{"max_pages":6},true
+State Street,workday_cxs,https://statestreet.wd1.myworkdayjobs.com/wday/cxs/statestreet/Global/jobs,{"limit":50,"max_pages":6,"india_only":true},true
+ICICI Prudential AMC,citi_custom,https://www.google.com/search?q=site%3Alinkedin.com+%22ICICI+Prudential+AMC%22+jobs+India,{},false
+HDFC AMC,citi_custom,https://www.google.com/search?q=site%3Alinkedin.com+%22HDFC+AMC%22+jobs+India,{},false
+Kotak AMC,citi_custom,https://www.kotakmf.com/careers,{},false

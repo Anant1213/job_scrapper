@@ -3,23 +3,24 @@ import csv, json, time
 from tools.supabase_client import fetch_companies, upsert_jobs_raw, upsert_jobs
 from tools.normalize import normalize_job, india_location_ok
 
+# existing
 from connectors.custom_barclays import fetch as fetch_barclays
 from connectors.workday_cxs import fetch as fetch_workday
-from connectors.greenhouse_board import fetch as fetch_greenhouse
-from connectors.lever_postings import fetch as fetch_lever
 from connectors.oracle_cx import fetch as fetch_oracle
 
-from connectors.goldman_higher import fetch as fetch_gs_higher
+# NEW
+from connectors.taleo_tgnewui import fetch as fetch_taleo
+from connectors.brassring_go import fetch as fetch_brassring
+from connectors.citi_custom import fetch as fetch_citi
+from connectors.bnpp_group import fetch as fetch_bnpp
 
 def _company_map():
     return {c["name"]: c["id"] for c in fetch_companies() if c.get("active")}
 
-
 def _truthy(v, default=True):
     if v is None or v == "":
         return default
-    return str(v).strip().lower() in ("true", "1", "yes", "y")
-
+    return str(v).strip().lower() in ("true","1","yes","y")
 
 def run_from_sources_csv():
     with open("config/sources.csv", newline="", encoding="utf-8") as f:
@@ -50,27 +51,46 @@ def run_from_sources_csv():
             try:
                 if kind == "barclays_search":
                     data = fetch_barclays(endpoint, max_pages=int(params.get("max_pages", 3)))
+
                 elif kind == "workday_cxs":
                     data = fetch_workday(
-                        endpoint,
+                        endpoint_url=endpoint,
                         search_text=params.get("searchText"),
                         limit=int(params.get("limit", 50)),
-                        max_pages=int(params.get("max_pages", 3)),
+                        max_pages=int(params.get("max_pages", 5)),
+                        india_only=bool(params.get("india_only", True)),
                     )
-                elif kind == "greenhouse_board":
-                    data = fetch_greenhouse(endpoint)
-                elif kind == "lever_postings":
-                    data = fetch_lever(endpoint)
-                elif kind == "goldman_higher":
-                    data = fetch_gs_higher(endpoint, max_pages=int(params.get("max_pages", 3)))
 
-                elif kind == "oracle_cx_search":
+                elif kind == "oracle_cx":
                     data = fetch_oracle(
-                        endpoint,
-                        searchText=params.get("searchText"),
-                        page_size=int(params.get("page_size", 50)),
-                        max_pages=int(params.get("max_pages", 3)),
+                        endpoint_url=endpoint,
+                        max_pages=int(params.get("max_pages", 6)),
                     )
+
+                elif kind == "taleo_tgnewui":
+                    data = fetch_taleo(
+                        base_search_url=endpoint,
+                        max_pages=int(params.get("max_pages", 4)),
+                    )
+
+                elif kind == "brassring_go":
+                    data = fetch_brassring(
+                        go_page_url=endpoint,
+                        max_pages=int(params.get("max_pages", 4)),
+                    )
+
+                elif kind == "citi_custom":
+                    data = fetch_citi(
+                        india_base_url=endpoint,
+                        max_pages=int(params.get("max_pages", 8)),
+                    )
+
+                elif kind == "bnpp_group":
+                    data = fetch_bnpp(
+                        india_landing_url=endpoint,
+                        max_pages=int(params.get("max_pages", 6)),
+                    )
+
                 else:
                     print(f"  (no handler yet for kind={kind})")
                     continue
@@ -78,10 +98,8 @@ def run_from_sources_csv():
                 raw_payload = {"count": len(data)}
                 for d in data:
                     loc = (d.get("location") or "").strip() or None
-                    # hard India gate: skip if we can't confirm India/city
                     if not india_location_ok(loc):
                         continue
-
                     _, rec = normalize_job(
                         company_id=company_id,
                         title=d.get("title"),
@@ -109,10 +127,9 @@ def run_from_sources_csv():
             except Exception as e:
                 print(f"  ! jobs upsert failed: {e}")
 
-            time.sleep(1)
+            time.sleep(0.8)
 
         print(f"Done. Upserted total {total_jobs} jobs.")
-
 
 if __name__ == "__main__":
     run_from_sources_csv()

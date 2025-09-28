@@ -1,96 +1,123 @@
 # connectors/oracle_cx.py
-from urllib.parse import urlparse
-import requests, time
+"""
+Generic Oracle Recruiting Cloud (Candidate Experience) fetcher.
+Strategy:
+  1) Call the public requisitions listing endpoint (HTML) with India filters.
+  2) If HTML, parse job cards.
+  3) Also try a JSON endpoint used by many sites: '/rest/api/jobs/search' POST.
+We keep it robust without paid APIs or auth.
+"""
+import time, re, json
+from urllib.parse import urlencode, urljoin
+import requests
+from bs4 import BeautifulSoup
 
-HEADERS = {
-    "User-Agent": "JobScoutBot/0.1 (+github actions)",
-    "Content-Type": "application/json",
-    "Accept": "application/json"
+HDRS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    "Accept": "text/html,application/json;q=0.9,*/*;q=0.8",
 }
-REQ_TIMEOUT = 25
 
-def _host_site(endpoint_url: str):
-    """Extract base host and site name from an ORC search endpoint:
-       https://<host>/hcmUI/CandidateExperience/en/sites/<SITE>/search
-    """
-    p = urlparse(endpoint_url)
-    base = f"{p.scheme}://{p.netloc}"
-    parts = [x for x in p.path.split("/") if x]
-    # .../en/sites/<SITE>/search
-    site = None
-    for i in range(len(parts)):
-        if i+2 < len(parts) and parts[i] == "sites":
-            site = parts[i+1]
-            break
-    return base, site
-
-def fetch(endpoint_url: str, searchText: str | None = None, page_size: int = 50, max_pages: int = 3):
-    """
-    Calls the public CandidateExperience search API:
-      POST <host>/hcmUI/CandidateExperience/en/sites/<SITE>/search
-      body: {"searchText": "...", "pageSize": 50, "page": 1, "sortBy": "POSTING_DATES_DESC"}
-    Returns a list of {title, detail_url, location, posted, description, req_id}
-    """
-    base, site = _host_site(endpoint_url)
-    if not site:
-        raise ValueError("Could not infer ORC site from endpoint_url")
-
-    out = []
-    for page in range(1, max_pages + 1):
-        body = {
-            "searchText": searchText or "",
-            "pageSize": int(page_size),
-            "page": page,
-            "sortBy": "POSTING_DATES_DESC"
-        }
-        r = requests.post(endpoint_url, headers=HEADERS, json=body, timeout=REQ_TIMEOUT)
-        r.raise_for_status()
-        data = r.json() or {}
-
-        # Oracle frequently returns results under "items"
-        items = data.get("items") or data.get("Items") or []
-        if not items:
-            # some tenants return "requisitions" or "searchResults"
-            items = data.get("requisitions") or data.get("searchResults") or []
-
-        if not items:
-            break
-
-        for j in items:
-            # title
-            title = j.get("title") or j.get("Title") or j.get("jobTitle")
-
-            # requisition/job id
-            req_id = (j.get("Id") or j.get("id") or j.get("jobId") or j.get("requisitionId"))
-            req_id = str(req_id) if req_id is not None else None
-
-            # location (varies a lot)
-            loc = None
-            if isinstance(j.get("locations"), list) and j["locations"]:
-                loc = "; ".join([str(x.get("name") or x) for x in j["locations"]])
-            loc = loc or j.get("primaryLocation") or j.get("Location") or j.get("location")
-
-            # posted/updated
-            posted = j.get("postedDate") or j.get("datePosted") or j.get("posted") or j.get("UpdatedDate")
-
-            # apply/detail url
-            if req_id:
-                detail_url = f"{base}/hcmUI/CandidateExperience/en/sites/{site}/job/{req_id}"
-            else:
-                # fallback: many payloads include "externalPath" or "jobUrl"
-                detail_url = j.get("externalPath") or j.get("jobUrl")
-
-            # short description (optional)
-            desc = (j.get("description") or j.get("shortDescription") or "")[:2000]
-
-            out.append({
-                "title": title,
-                "detail_url": detail_url,
-                "location": loc,
-                "posted": posted,
-                "description": desc,
-                "req_id": req_id
-            })
-        time.sleep(0.7)
-
+def _parse_html(html, base_url):
+    soup = BeautifulSoup(html, "html.parser")
+    items = []
+    # Common ORC job card selectors
+    for card in soup.select("[data-automation-id='jobCard'], li, article, div"):
+        a = card.select_one("a[href*='/requisitions/'], a[href*='/jobs/'], a[href*='/job/']")
+        if not a:
+            continue
+        title = a.get_text(" ", strip=True)
+        href = a.get("href") or ""
+        if href.startswith("/"):
+            href = urljoin(base_url, href)
+        # location
+        loc = None
+        loc_el = card.select_one("[data-automation-id='locations'], .job-location, .location")
+        if loc_el:
+            loc = loc_el.get_text(" ", strip=True)
+        # posted date if present
+        posted = None
+        pd = card.find(attrs={"data-automation-id": "postedDate"})
+        if pd:
+            posted = pd.get_text(" ", strip=True)
+        items.append({
+            "title": title, "location": loc, "detail_url": href,
+            "description": None, "req_id": None, "posted": posted
+        })
+    # dedupe
+    seen, out = set(), []
+    for it in items:
+        k = (it["title"], it["detail_url"])
+        if k in seen: 
+            continue
+        seen.add(k)
+        out.append(it)
     return out
+
+def _html_list(base_reqs_url, page=1):
+    # try ?location=India&locationLevel=country plus paging
+    params = {"location": "India", "locationLevel": "country", "page": page}
+    sep = "&" if "?" in base_reqs_url else "?"
+    url = f"{base_reqs_url}{sep}{urlencode(params)}"
+    r = requests.get(url, headers=HDRS, timeout=45)
+    if r.status_code != 200:
+        return [], False
+    jobs = _parse_html(r.text, base_reqs_url)
+    # crude: if fewer than ~5 jobs arrived or repeated, assume no more pages
+    more = len(jobs) >= 5
+    return jobs, more
+
+def _json_search(site_base):
+    """
+    Attempt JSON endpoint used on many ORC tenants:
+      POST {site_base}/rest/api/jobs/search
+      body: {"keyword":"","location":"India","locationLevel":"country","page":1}
+    """
+    url = urljoin(site_base if site_base.endswith("/") else (site_base + "/"), "rest/api/jobs/search")
+    body = {"keyword": "", "location": "India", "locationLevel": "country", "page": 1}
+    r = requests.post(url, headers={**HDRS, "Content-Type": "application/json"}, data=json.dumps(body), timeout=45)
+    if r.status_code != 200:
+        return []
+    js = r.json()
+    out = []
+    for it in (js.get("jobs") or []):
+        out.append({
+            "title": it.get("title"),
+            "location": it.get("location"),
+            "detail_url": urljoin(site_base, it.get("jobUrl") or ""),
+            "description": None,
+            "req_id": it.get("RequisitionNumber") or it.get("Id"),
+            "posted": it.get("postedDate")
+        })
+    return out
+
+def fetch(endpoint_url: str, max_pages: int = 6):
+    """
+    endpoint_url examples (NO query string—just the base 'requisitions' page):
+      https://hdpc.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/LateralHiring/requisitions
+      https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions
+      https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions
+    """
+    all_jobs = []
+
+    # 1) try vendor JSON search (works on many)
+    site_base = endpoint_url.rsplit("/requisitions", 1)[0]
+    try:
+        js = _json_search(site_base)
+        if js:
+            return js
+    except Exception:
+        pass
+
+    # 2) fallback: parse HTML list with India filters & simple pagination
+    for page in range(1, max_pages+1):
+        try:
+            jobs, more = _html_list(endpoint_url, page=page)
+            all_jobs.extend(jobs)
+            if not more or not jobs:
+                break
+            time.sleep(0.6)
+        except Exception:
+            break
+
+    return all_jobs
