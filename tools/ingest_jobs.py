@@ -3,12 +3,9 @@ import csv, json, time
 from tools.supabase_client import fetch_companies, upsert_jobs_raw, upsert_jobs
 from tools.normalize import normalize_job, india_location_ok
 
-# existing
 from connectors.custom_barclays import fetch as fetch_barclays
 from connectors.workday_cxs import fetch as fetch_workday
 from connectors.oracle_cx import fetch as fetch_oracle
-
-# NEW
 from connectors.taleo_tgnewui import fetch as fetch_taleo
 from connectors.brassring_go import fetch as fetch_brassring
 from connectors.citi_custom import fetch as fetch_citi
@@ -62,34 +59,19 @@ def run_from_sources_csv():
                     )
 
                 elif kind == "oracle_cx":
-                    data = fetch_oracle(
-                        endpoint_url=endpoint,
-                        max_pages=int(params.get("max_pages", 6)),
-                    )
+                    data = fetch_oracle(endpoint_url=endpoint, max_pages=int(params.get("max_pages", 6)))
 
                 elif kind == "taleo_tgnewui":
-                    data = fetch_taleo(
-                        base_search_url=endpoint,
-                        max_pages=int(params.get("max_pages", 4)),
-                    )
+                    data = fetch_taleo(base_search_url=endpoint, max_pages=int(params.get("max_pages", 4)))
 
                 elif kind == "brassring_go":
-                    data = fetch_brassring(
-                        go_page_url=endpoint,
-                        max_pages=int(params.get("max_pages", 4)),
-                    )
+                    data = fetch_brassring(go_page_url=endpoint, max_pages=int(params.get("max_pages", 6)))
 
                 elif kind == "citi_custom":
-                    data = fetch_citi(
-                        india_base_url=endpoint,
-                        max_pages=int(params.get("max_pages", 8)),
-                    )
+                    data = fetch_citi(india_base_url=endpoint, max_pages=int(params.get("max_pages", 10)))
 
                 elif kind == "bnpp_group":
-                    data = fetch_bnpp(
-                        india_landing_url=endpoint,
-                        max_pages=int(params.get("max_pages", 6)),
-                    )
+                    data = fetch_bnpp(india_landing_url=endpoint, max_pages=int(params.get("max_pages", 6)))
 
                 else:
                     print(f"  (no handler yet for kind={kind})")

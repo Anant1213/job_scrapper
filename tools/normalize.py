@@ -1,61 +1,61 @@
 # tools/normalize.py
-import hashlib, re
+import re
+from datetime import datetime
 
-# target: India + core cities; remote accepted only if it says India or a target city
-TARGET_CITIES = {
-    "mumbai","bengaluru","bangalore","hyderabad",
-    "pune","chennai","gurugram","gurgaon","noida"
-}
-EXP_RE = re.compile(r'(\d+)\s*(?:\+|\-)?\s*(?:years?|yrs?)', re.I)
-
-def _hash_key(*parts):
-    return hashlib.md5("|".join([p or "" for p in parts]).encode("utf-8")).hexdigest()
-
-def infer_exp_range(text: str | None):
-    if not text: return (None, None)
-    years = [int(m.group(1)) for m in EXP_RE.finditer(text)]
-    if not years: return (None, None)
-    return (min(years), max(years))
+CITIES = [
+    "Mumbai","Navi Mumbai","Bengaluru","Bangalore","Pune","Hyderabad",
+    "Chennai","Noida","Gurugram","Gurgaon","Kolkata","New Delhi","Delhi",
+    "Ahmedabad","Cochin","Kochi","Coimbatore","Jaipur"
+]
+STATES = [
+    "Maharashtra","Karnataka","Telangana","Tamil Nadu","Uttar Pradesh",
+    "Haryana","West Bengal","Delhi","Gujarat","Kerala"
+]
 
 def india_location_ok(loc: str | None) -> bool:
-    """pass only if we can see India or one of the target cities explicitly"""
     if not loc:
         return False
-    s = loc.lower()
-    if "india" in s:
+    s = loc.strip()
+    s_low = s.lower()
+    # obvious markers
+    if "india" in s_low or s_low.startswith("in-"):
         return True
-    return any(c in s for c in TARGET_CITIES)
+    # cities and states
+    for w in CITIES + STATES:
+        if re.search(rf"\b{re.escape(w)}\b", s, flags=re.I):
+            return True
+    # common ISO-ish patterns: "IN, Mumbai", "Mumbai, IN"
+    if re.search(r"\bIN\b", s):
+        return True
+    return False
 
-def normalize_job(
-    company_id: int,
-    title: str,
-    apply_url: str,
-    location: str | None,
-    description: str | None,
-    req_id: str | None = None,
-    posted_at: str | None = None
-):
-    remote = None
-    if location and ("remote" in location.lower() or "work from home" in location.lower()):
-        # accept remote only if text still mentions India/city somewhere
-        remote = True if india_location_ok(location) else None
+def normalize_job(company_id, title, apply_url, location, description, req_id, posted_at):
+    # canonical key combines title + location + req_id when present
+    title = (title or "").strip()
+    location = (location or "").strip() or None
+    req_id = (req_id or "").strip() or None
+    canonical = f"{title}::{location or ''}::{req_id or ''}".lower().strip()
 
-    min_exp, max_exp = infer_exp_range(f"{title or ''} {description or ''}")
-    canonical_key = req_id or _hash_key(title, apply_url, location or "")
+    posted = None
+    if posted_at:
+        # accept common formats, but keep loose
+        for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S%z", "%d %b %Y", "%b %d, %Y"):
+            try:
+                posted = datetime.strptime(str(posted_at), fmt)
+                break
+            except Exception:
+                continue
 
-    return canonical_key, {
+    record = {
         "company_id": company_id,
-        "req_id": req_id,
-        "title": title,
+        "title": title[:255] if title else None,
+        "apply_url": apply_url,
         "team": None,
         "location_city": location,
         "location_country": "India" if india_location_ok(location) else None,
-        "remote": remote,
-        "posted_at": posted_at,
-        "apply_url": apply_url,
-        "description": description,
-        "seniority": None,
-        "min_exp": min_exp,
-        "max_exp": max_exp,
-        "ctc_predicted_pass": None
+        "description": (description or None),
+        "req_id": req_id,
+        "posted_at": posted.isoformat() if posted else None,
+        "canonical_key": canonical[:255] if canonical else None,
     }
+    return canonical, record

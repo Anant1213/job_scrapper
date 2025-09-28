@@ -1,122 +1,124 @@
 # connectors/oracle_cx.py
-"""
-Generic Oracle Recruiting Cloud (Candidate Experience) fetcher.
-Strategy:
-  1) Call the public requisitions listing endpoint (HTML) with India filters.
-  2) If HTML, parse job cards.
-  3) Also try a JSON endpoint used by many sites: '/rest/api/jobs/search' POST.
-We keep it robust without paid APIs or auth.
-"""
 import time, re, json
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urljoin, urlencode
 import requests
 from bs4 import BeautifulSoup
 
-HDRS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-    "Accept": "text/html,application/json;q=0.9,*/*;q=0.8",
+BASE_HDRS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
 }
 
-def _parse_html(html, base_url):
+AJAX_HDRS = {
+    **BASE_HDRS,
+    "Accept": "application/json, text/javascript, */*; q=0.01",
+    "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
+    "Origin": "",  # we set at runtime to site base
+    "Referer": "", # set at runtime
+}
+
+def _parse_html_list(html, base_url):
     soup = BeautifulSoup(html, "html.parser")
-    items = []
-    # Common ORC job card selectors
+    out = []
+    # fairly generic selectors
     for card in soup.select("[data-automation-id='jobCard'], li, article, div"):
-        a = card.select_one("a[href*='/requisitions/'], a[href*='/jobs/'], a[href*='/job/']")
+        a = card.select_one("a[href*='/requisitions/'], a[href*='/job/'], a[href*='/jobs/']")
         if not a:
             continue
         title = a.get_text(" ", strip=True)
-        href = a.get("href") or ""
+        href  = a.get("href") or ""
         if href.startswith("/"):
             href = urljoin(base_url, href)
-        # location
         loc = None
         loc_el = card.select_one("[data-automation-id='locations'], .job-location, .location")
         if loc_el:
             loc = loc_el.get_text(" ", strip=True)
-        # posted date if present
-        posted = None
-        pd = card.find(attrs={"data-automation-id": "postedDate"})
-        if pd:
-            posted = pd.get_text(" ", strip=True)
-        items.append({
+        out.append({
             "title": title, "location": loc, "detail_url": href,
-            "description": None, "req_id": None, "posted": posted
+            "description": None, "req_id": None, "posted": None
         })
-    # dedupe
-    seen, out = set(), []
-    for it in items:
-        k = (it["title"], it["detail_url"])
+    # de-dupe
+    seen, dedup = set(), []
+    for j in out:
+        k = (j["title"], j["detail_url"])
         if k in seen: 
             continue
         seen.add(k)
-        out.append(it)
-    return out
+        dedup.append(j)
+    return dedup
 
-def _html_list(base_reqs_url, page=1):
-    # try ?location=India&locationLevel=country plus paging
-    params = {"location": "India", "locationLevel": "country", "page": page}
-    sep = "&" if "?" in base_reqs_url else "?"
-    url = f"{base_reqs_url}{sep}{urlencode(params)}"
-    r = requests.get(url, headers=HDRS, timeout=45)
+def _html_requisitions(endpoint_url, page=1):
+    # try server-rendered list with India filter
+    params = {
+        "location": "India",
+        "locationLevel": "country",
+        "page": page
+    }
+    sep = "&" if "?" in endpoint_url else "?"
+    url = f"{endpoint_url}{sep}{urlencode(params)}"
+    r = requests.get(url, headers=BASE_HDRS, timeout=45)
     if r.status_code != 200:
         return [], False
-    jobs = _parse_html(r.text, base_reqs_url)
-    # crude: if fewer than ~5 jobs arrived or repeated, assume no more pages
-    more = len(jobs) >= 5
-    return jobs, more
+    jobs = _parse_html_list(r.text, endpoint_url)
+    return jobs, len(jobs) >= 5  # heuristic for "has more pages"
 
 def _json_search(site_base):
     """
-    Attempt JSON endpoint used on many ORC tenants:
-      POST {site_base}/rest/api/jobs/search
-      body: {"keyword":"","location":"India","locationLevel":"country","page":1}
+    Many ORC tenants expose: POST/GET {site_base}/rest/api/jobs/search
+    body/query: location=India&locationLevel=country&page=1
     """
+    ajax = dict(AJAX_HDRS)
+    ajax["Origin"] = site_base
+    ajax["Referer"] = site_base
+
     url = urljoin(site_base if site_base.endswith("/") else (site_base + "/"), "rest/api/jobs/search")
-    body = {"keyword": "", "location": "India", "locationLevel": "country", "page": 1}
-    r = requests.post(url, headers={**HDRS, "Content-Type": "application/json"}, data=json.dumps(body), timeout=45)
-    if r.status_code != 200:
-        return []
-    js = r.json()
-    out = []
-    for it in (js.get("jobs") or []):
-        out.append({
-            "title": it.get("title"),
-            "location": it.get("location"),
-            "detail_url": urljoin(site_base, it.get("jobUrl") or ""),
-            "description": None,
-            "req_id": it.get("RequisitionNumber") or it.get("Id"),
-            "posted": it.get("postedDate")
-        })
-    return out
+    payload = {"keyword":"", "location":"India", "locationLevel":"country", "page":1}
+
+    # try POST
+    r = requests.post(url, headers=ajax, data=json.dumps(payload), timeout=45)
+    if r.status_code == 200 and r.headers.get("content-type","").startswith("application/json"):
+        return r.json()
+
+    # try GET as fallback
+    qs = urlencode({"keyword":"","location":"India","locationLevel":"country","page":1})
+    r2 = requests.get(f"{url}?{qs}", headers=ajax, timeout=45)
+    if r2.status_code == 200 and r2.headers.get("content-type","").startswith("application/json"):
+        return r2.json()
+
+    return None
 
 def fetch(endpoint_url: str, max_pages: int = 6):
     """
-    endpoint_url examples (NO query string—just the base 'requisitions' page):
+    endpoint_url like:
       https://hdpc.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/LateralHiring/requisitions
-      https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions
-      https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions
     """
     all_jobs = []
 
-    # 1) try vendor JSON search (works on many)
     site_base = endpoint_url.rsplit("/requisitions", 1)[0]
     try:
         js = _json_search(site_base)
-        if js:
-            return js
+        if js and isinstance(js, dict) and js.get("jobs"):
+            for it in js["jobs"]:
+                all_jobs.append({
+                    "title": it.get("title"),
+                    "location": it.get("location"),
+                    "detail_url": urljoin(site_base, it.get("jobUrl") or ""),
+                    "description": None,
+                    "req_id": it.get("RequisitionNumber") or it.get("Id"),
+                    "posted": it.get("postedDate"),
+                })
+            return all_jobs
     except Exception:
         pass
 
-    # 2) fallback: parse HTML list with India filters & simple pagination
-    for page in range(1, max_pages+1):
+    # fallback: HTML pages with India filter
+    for p in range(1, max_pages+1):
         try:
-            jobs, more = _html_list(endpoint_url, page=page)
+            jobs, more = _html_requisitions(endpoint_url, page=p)
             all_jobs.extend(jobs)
             if not more or not jobs:
                 break
-            time.sleep(0.6)
+            time.sleep(0.5)
         except Exception:
             break
 
