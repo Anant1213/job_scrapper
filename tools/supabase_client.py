@@ -20,18 +20,24 @@ def upsert_jobs_raw(company_id: int, source_id, page_url: str, payload: dict):
         "payload": payload,
     }]
     r = requests.post(url, headers=HDRS, json=rows, timeout=45)
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except Exception as e:
+        raise RuntimeError(f"jobs_raw upsert failed: {r.status_code} {r.text}") from e
     return r.json()[0]["id"] if r.content else None
 
 def upsert_jobs(company_id: int, rows: list[dict]):
-    # >>> important: if nothing to insert, skip the POST (PostgREST 400 on empty body)
+    # IMPORTANT: PostgREST 400 on empty body. Just skip.
     if not rows:
         return 0
-    for r in rows:
-        r["company_id"] = company_id
+    for rec in rows:
+        rec["company_id"] = company_id
     url = f"{SUPABASE_URL}/rest/v1/jobs?on_conflict=company_id,canonical_key&select=id"
     r = requests.post(url, headers=HDRS, json=rows, timeout=60)
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except Exception as e:
+        raise RuntimeError(f"jobs upsert failed: {r.status_code} {r.text}") from e
     return len(r.json()) if r.content else 0
 
 def fetch_companies():

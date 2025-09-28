@@ -5,32 +5,29 @@ from datetime import datetime
 CITIES = [
     "Mumbai","Navi Mumbai","Bengaluru","Bangalore","Pune","Hyderabad",
     "Chennai","Noida","Gurugram","Gurgaon","Kolkata","New Delhi","Delhi",
-    "Ahmedabad","Cochin","Kochi","Coimbatore","Jaipur"
+    "Ahmedabad","Kochi","Cochin","Coimbatore","Jaipur","Indore","Surat"
 ]
 STATES = [
     "Maharashtra","Karnataka","Telangana","Tamil Nadu","Uttar Pradesh",
-    "Haryana","West Bengal","Delhi","Gujarat","Kerala"
+    "Haryana","West Bengal","Delhi","Gujarat","Kerala","Rajasthan"
 ]
 
 def india_location_ok(loc: str | None) -> bool:
     if not loc:
         return False
     s = loc.strip()
-    s_low = s.lower()
-    # obvious markers
-    if "india" in s_low or s_low.startswith("in-"):
+    sl = s.lower()
+    if "india" in sl or sl.startswith("in-") or sl.endswith(", in") or ", in," in sl:
         return True
-    # cities and states
     for w in CITIES + STATES:
-        if re.search(rf"\b{re.escape(w)}\b", s, flags=re.I):
+        if re.search(rf"\b{re.escape(w)}\b", s, re.I):
             return True
-    # common ISO-ish patterns: "IN, Mumbai", "Mumbai, IN"
+    # "Mumbai, IN" / "IN, Mumbai"
     if re.search(r"\bIN\b", s):
         return True
     return False
 
 def normalize_job(company_id, title, apply_url, location, description, req_id, posted_at):
-    # canonical key combines title + location + req_id when present
     title = (title or "").strip()
     location = (location or "").strip() or None
     req_id = (req_id or "").strip() or None
@@ -38,8 +35,7 @@ def normalize_job(company_id, title, apply_url, location, description, req_id, p
 
     posted = None
     if posted_at:
-        # accept common formats, but keep loose
-        for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S%z", "%d %b %Y", "%b %d, %Y"):
+        for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%SZ", "%d %b %Y", "%b %d, %Y"):
             try:
                 posted = datetime.strptime(str(posted_at), fmt)
                 break

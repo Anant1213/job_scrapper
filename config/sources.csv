@@ -1,20 +1,8 @@
 company,kind,endpoint_url,params,active
+Barclays,workday_cxs,https://barclays.wd3.myworkdayjobs.com/wday/cxs/barclays/External_Career_Site_Barclays/jobs,{"limit":50,"max_pages":6,"india_only":true},true
 Morgan Stanley,workday_cxs,https://ms.wd5.myworkdayjobs.com/wday/cxs/ms/External/jobs,{"limit":50,"max_pages":6,"india_only":true},true
-Goldman Sachs,citi_custom,https://higher.gs.com/results?search=&sort=RELEVANCE&page=1,{"max_pages":10},true
-JPMorgan Chase,oracle_cx,https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,{"max_pages":6},true
-Citi,citi_custom,https://jobs.citi.com/search-jobs/India/287/1?page=1,{"max_pages":10},true
-Barclays,barclays_search,https://search.jobs.barclays/search-jobs/Data%20Science%20Analytics/13015/1?glat=19.1256&glon=72.8925,{"max_pages":5},true
 Deutsche Bank,workday_cxs,https://db.wd3.myworkdayjobs.com/wday/cxs/db/External/jobs,{"limit":50,"max_pages":6,"india_only":true},true
-HSBC,citi_custom,https://mycareer.hsbc.com/en_GB/external?search=India&page=1,{"max_pages":6},false
-UBS,taleo_tgnewui,https://jobs.ubs.com/NAVWAR/search/?q=&locationsearch=India,{"max_pages":6},true
 Wells Fargo,workday_cxs,https://wf.wd1.myworkdayjobs.com/wday/cxs/wf/WellsFargoJobs/jobs,{"limit":50,"max_pages":6,"india_only":true},true
-Standard Chartered,citi_custom,https://jobs.standardchartered.com/search/?q=&locationsearch=India&page=1,{"max_pages":6},false
-BNP Paribas,bnpp_group,https://group.bnpparibas/en/careers/all-job-offers/india,{"max_pages":3},true
-Société Générale,taleo_tgnewui,https://careers.societegenerale.com/en/job-search-results?country=India,{"max_pages":4},false
-Nomura,brassring_go,https://careers.nomura.com/Nomura/go/Career-Opportunities-India/9050900/,{"max_pages":6},true
 Macquarie,workday_cxs,https://mq.wd3.myworkdayjobs.com/wday/cxs/mq/CareersatMQ/jobs,{"limit":50,"max_pages":6,"india_only":true},true
-BNY Mellon,oracle_cx,https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,{"max_pages":6},true
 State Street,workday_cxs,https://statestreet.wd1.myworkdayjobs.com/wday/cxs/statestreet/Global/jobs,{"limit":50,"max_pages":6,"india_only":true},true
-ICICI Prudential AMC,citi_custom,https://www.google.com/search?q=site%3Alinkedin.com+%22ICICI+Prudential+AMC%22+jobs+India,{},false
-HDFC AMC,citi_custom,https://www.google.com/search?q=site%3Alinkedin.com+%22HDFC+AMC%22+jobs+India,{},false
-Kotak AMC,citi_custom,https://www.kotakmf.com/careers,{},false
+Nomura,brassring_go,https://careers.nomura.com/Nomura/go/Career-Opportunities-India/9050900/,{"max_pages":6},true
