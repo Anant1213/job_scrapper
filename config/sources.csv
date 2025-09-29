@@ -16,11 +16,12 @@ BNY Mellon,oracle_cx,https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperien
 Citi,citi_custom,https://jobs.citi.com/search-jobs/India/287/1?page=1,{"max_pages":10},true
 
 # Taleo TGNewUI (list page that server-renders)
-UBS,taleo_tgnewui,https://jobs.ubs.com/TGnewUI/Search/home/SearchResults?partnerid=25008&siteid=5012&keyword=India&locationSearch=India,{"max_pages":1},true
+UBS,taleo_tgnewui,https://jobs.ubs.com/TGnewUI/Search/home/HomeWithPreLoad?partnerid=25008&siteid=5012&PageType=searchResults&SearchType=linkquery&LinkID=4138&locationSearch=India,{"max_pages":1},true
+
 Société Générale,taleo_tgnewui,https://careers.societegenerale.com/en/job-search-results?country=India,{"max_pages":1},true
 
 # BrassRing
 Nomura,brassring_go,https://careers.nomura.com/Nomura/go/Career-Opportunities-India/9050900/,{"max_pages":6},true
 
 # BNP group (HTML landing)
-BNP Paribas,bnpp_group,https://group.bnpparibas/en/careers/all-job-offers/india,{"max_pages":1},true
+BNP Paribas,bnpp_group,https://group.bnpparibas/en/careers/all-job-offers/india,{"max_pages":1},false

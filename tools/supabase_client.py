@@ -27,18 +27,23 @@ def upsert_jobs_raw(company_id: int, source_id, page_url: str, payload: dict):
     return r.json()[0]["id"] if r.content else None
 
 def upsert_jobs(company_id: int, rows: list[dict]):
-    # IMPORTANT: PostgREST 400 on empty body. Just skip.
     if not rows:
         return 0
+    # DO NOT send canonical_key (generated column)
+    cleaned = []
     for rec in rows:
-        rec["company_id"] = company_id
+        r = {k: v for k, v in rec.items() if k != "canonical_key"}
+        r["company_id"] = company_id
+        cleaned.append(r)
+
     url = f"{SUPABASE_URL}/rest/v1/jobs?on_conflict=company_id,canonical_key&select=id"
-    r = requests.post(url, headers=HDRS, json=rows, timeout=60)
+    r = requests.post(url, headers=HDRS, json=cleaned, timeout=60)
     try:
         r.raise_for_status()
     except Exception as e:
         raise RuntimeError(f"jobs upsert failed: {r.status_code} {r.text}") from e
     return len(r.json()) if r.content else 0
+
 
 def fetch_companies():
     url = f"{SUPABASE_URL}/rest/v1/companies?select=id,name,ats_type,careers_url,active"

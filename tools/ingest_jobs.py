@@ -60,7 +60,11 @@ def run_from_sources_csv():
                 elif kind == "citi_custom":
                     fetched = fetch_citi(india_base_url=endpoint, max_pages=int(params.get("max_pages", 10)))
                 elif kind == "taleo_tgnewui":
-                    fetched = fetch_taleo(base_search_url=endpoint, max_pages=int(params.get("max_pages", 4)))
+                    data = fetch_taleo(
+                        search_url=endpoint,         # <— rename this arg
+                        max_pages=int(params.get("max_pages", 4)),
+                    )
+
                 elif kind == "brassring_go":
                     fetched = fetch_brassring(go_page_url=endpoint, max_pages=int(params.get("max_pages", 6)))
                 elif kind == "barclays_search":
