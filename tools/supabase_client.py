@@ -4,12 +4,15 @@ import os, requests
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_SERVICE_ROLE = os.environ["SUPABASE_SERVICE_ROLE"]
 
+# tools/supabase_client.py
 HDRS = {
     "apikey": SUPABASE_SERVICE_ROLE,
     "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE}",
     "Content-Type": "application/json",
-    "Prefer": "resolution=merge-duplicates"
+    # add return=representation so we get rows back (and a correct count)
+    "Prefer": "resolution=merge-duplicates,return=representation",
 }
+
 
 def upsert_jobs_raw(company_id: int, source_id, page_url: str, payload: dict):
     url = f"{SUPABASE_URL}/rest/v1/jobs_raw?select=id"
