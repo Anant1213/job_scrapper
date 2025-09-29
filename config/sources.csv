@@ -1,8 +1,26 @@
 company,kind,endpoint_url,params,active
-Barclays,workday_cxs,https://barclays.wd3.myworkdayjobs.com/wday/cxs/barclays/External_Career_Site_Barclays/jobs,{"limit":50,"max_pages":6,"india_only":true},true
+# Workday (most reliable)
+Barclays,workday_cxs,https://barclays.wd3.myworkdayjobs.com/wday/cxs/barclays/External/jobs,{"limit":50,"max_pages":6,"india_only":true},true
 Morgan Stanley,workday_cxs,https://ms.wd5.myworkdayjobs.com/wday/cxs/ms/External/jobs,{"limit":50,"max_pages":6,"india_only":true},true
 Deutsche Bank,workday_cxs,https://db.wd3.myworkdayjobs.com/wday/cxs/db/External/jobs,{"limit":50,"max_pages":6,"india_only":true},true
 Wells Fargo,workday_cxs,https://wf.wd1.myworkdayjobs.com/wday/cxs/wf/WellsFargoJobs/jobs,{"limit":50,"max_pages":6,"india_only":true},true
 Macquarie,workday_cxs,https://mq.wd3.myworkdayjobs.com/wday/cxs/mq/CareersatMQ/jobs,{"limit":50,"max_pages":6,"india_only":true},true
 State Street,workday_cxs,https://statestreet.wd1.myworkdayjobs.com/wday/cxs/statestreet/Global/jobs,{"limit":50,"max_pages":6,"india_only":true},true
+
+# Oracle CE (now with session + referer + HTML fallback)
+Goldman Sachs,oracle_cx,https://hdpc.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/LateralHiring/requisitions,{"max_pages":6},true
+JPMorgan Chase,oracle_cx,https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,{"max_pages":6},true
+BNY Mellon,oracle_cx,https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,{"max_pages":6},true
+
+# Citi / generic list
+Citi,citi_custom,https://jobs.citi.com/search-jobs/India/287/1?page=1,{"max_pages":10},true
+
+# Taleo TGNewUI (list page that server-renders)
+UBS,taleo_tgnewui,https://jobs.ubs.com/TGnewUI/Search/home/SearchResults?partnerid=25008&siteid=5012&keyword=India&locationSearch=India,{"max_pages":1},true
+Société Générale,taleo_tgnewui,https://careers.societegenerale.com/en/job-search-results?country=India,{"max_pages":1},true
+
+# BrassRing
 Nomura,brassring_go,https://careers.nomura.com/Nomura/go/Career-Opportunities-India/9050900/,{"max_pages":6},true
+
+# BNP group (HTML landing)
+BNP Paribas,bnpp_group,https://group.bnpparibas/en/careers/all-job-offers/india,{"max_pages":1},true
