@@ -1,0 +1,93 @@
+# config/sites.yaml
+# Add/adjust entries as you share job page URLs.
+sites:
+  # EXAMPLE 1 — Citi India list (static HTML)
+  - company: Citi
+    active: true
+    url: "https://jobs.citi.com/search-jobs/India/287/1?page=1"
+    render: false
+    max_pages: 10
+    page_param: "page"
+    force_india: true
+    selectors:
+      card: "li, article"              # be broad, we filter below
+      title: "a"
+      link: "a"
+      location: ".job-location, .location, [data-ph-at-text='location']"
+      posted: ""
+
+  # EXAMPLE 2 — Goldman Sachs higher.gs (JS-heavy → Playwright)
+  - company: Goldman Sachs
+    active: true
+    url: "https://higher.gs.com/results?search=&sort=RELEVANCE&page=1"
+    render: true
+    max_pages: 5
+    wait_for: "div[class*='ResultList']"
+    next_selector: "button[aria-label='Next']"
+    force_india: true            # page is global; we only keep India below anyway
+    selectors:
+      card: "a[href*='/job/'], a[href*='/jobs/'], div[data-test*='result-card']"
+      title: "h3, .result-title, a"
+      link: "a"
+      location: ".location, [data-test='job-location']"
+      posted: ""
+
+  # EXAMPLE 3 — Nomura India (static HTML; already works)
+  - company: Nomura
+    active: true
+    url: "https://careers.nomura.com/Nomura/go/Career-Opportunities-India/9050900/"
+    render: false
+    max_pages: 1
+    force_india: true
+    selectors:
+      card: "a[href*='/Nomura/job/']"
+      title: "a"
+      link: "a"
+      location: ".jobLocation, .location, .job-location"
+      posted: ""
+
+  # EXAMPLE 4 — UBS Taleo (server-rendered search)
+  - company: UBS
+    active: true
+    url: "https://jobs.ubs.com/TGnewUI/Search/home/HomeWithPreLoad?partnerid=25008&siteid=5012&PageType=searchResults&SearchType=linkquery&LinkID=4138&locationSearch=India"
+    render: false
+    max_pages: 1
+    force_india: true
+    selectors:
+      card: "a[href*='JobDetail/']"
+      title: "a"
+      link: "a"
+      location: ".jobLocation, .location, .job-location"
+      posted: ""
+
+  # EXAMPLE 5 — JPM (JS-heavy). We’ll use Playwright to render.
+  - company: JPMorgan Chase
+    active: true
+    url: "https://careers.jpmorganchase.com/en/jobs?query=&location=India"
+    render: true
+    max_pages: 5
+    wait_for: "div[class*='job-results'], li a[href*='/job/']"
+    next_selector: "button[aria-label='Next']"
+    force_india: true
+    selectors:
+      card: "li a[href*='/job/'], div[class*='job-card']"
+      title: "h3, .job-title, a"
+      link: "a"
+      location: ".job-location, .location, [data-automation-id='locations']"
+      posted: ""
+
+  # EXAMPLE 6 — BNY Mellon (JS-heavy)
+  - company: BNY Mellon
+    active: true
+    url: "https://www.bnymellon.com/us/en/careers/search-jobs.html?countries=India"
+    render: true
+    max_pages: 5
+    wait_for: "div[class*='search-results'], a[href*='/job/']"
+    next_selector: "button[aria-label='Next'], .pagination-next"
+    force_india: true
+    selectors:
+      card: "a[href*='/job/'], div[class*='job-result']"
+      title: "h3, .job-title, a"
+      link: "a"
+      location: ".job-location, .location"
+      posted: ""

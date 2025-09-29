@@ -20,30 +20,40 @@ def upsert_jobs_raw(company_id: int, source_id, page_url: str, payload: dict):
         "payload": payload,
     }]
     r = requests.post(url, headers=HDRS, json=rows, timeout=45)
-    try:
-        r.raise_for_status()
-    except Exception as e:
-        raise RuntimeError(f"jobs_raw upsert failed: {r.status_code} {r.text}") from e
+    r.raise_for_status()
     return r.json()[0]["id"] if r.content else None
 
 def upsert_jobs(company_id: int, rows: list[dict]):
+    # skip empty batch
     if not rows:
         return 0
-    # DO NOT send canonical_key (generated column)
-    cleaned = []
+
+    # de-duplicate within the batch to avoid "ON CONFLICT ... cannot affect row a second time"
+    seen, cleaned = set(), []
     for rec in rows:
-        r = {k: v for k, v in rec.items() if k != "canonical_key"}
+        # key: prefer req_id or apply_url; fallback to title+location
+        k = (
+            (rec.get("req_id") or "").strip().lower(),
+            (rec.get("apply_url") or "").strip().lower(),
+            (rec.get("title") or "").strip().lower(),
+            (rec.get("location_city") or "").strip().lower(),
+        )
+        if k in seen:
+            continue
+        seen.add(k)
+
+        # strip generated column
+        r = {kk: vv for kk, vv in rec.items() if kk != "canonical_key"}
         r["company_id"] = company_id
         cleaned.append(r)
 
-    url = f"{SUPABASE_URL}/rest/v1/jobs?on_conflict=company_id,canonical_key&select=id"
-    r = requests.post(url, headers=HDRS, json=cleaned, timeout=60)
-    try:
-        r.raise_for_status()
-    except Exception as e:
-        raise RuntimeError(f"jobs upsert failed: {r.status_code} {r.text}") from e
-    return len(r.json()) if r.content else 0
+    if not cleaned:
+        return 0
 
+    url = f"{SUPABASE_URL}/rest/v1/jobs?on_conflict=company_id,canonical_key&select=id"
+    resp = requests.post(url, headers=HDRS, json=cleaned, timeout=60)
+    resp.raise_for_status()
+    return len(resp.json()) if resp.content else 0
 
 def fetch_companies():
     url = f"{SUPABASE_URL}/rest/v1/companies?select=id,name,ats_type,careers_url,active"
