@@ -1,106 +1,122 @@
 # connectors/oracle_cx.py
-import time, json, requests, re
-from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlencode
+import time
+import requests
+from urllib.parse import urlparse
 
-UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
-)
+DEFAULT_LIMIT = 200
+DEFAULT_PAGES = 10
+TIMEOUT = 30
 
-BASE = {
-    "User-Agent": UA,
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-}
-AJAX = {
-    "User-Agent": UA,
-    "Accept": "application/json, text/javascript, */*; q=0.01",
-    "Content-Type": "application/json",
-    "X-Requested-With": "XMLHttpRequest",
-}
+def _host_base(endpoint_url: str) -> str:
+    """Return 'https://<host>' for any Oracle CX URL you give me."""
+    u = urlparse(endpoint_url)
+    return f"{u.scheme}://{u.netloc}"
 
-def _parse_html(html, base):
-    soup = BeautifulSoup(html, "html.parser")
-    jobs, seen = [], set()
-
-    # CE pages often have anchors to /requisitions/<id>/...
-    for a in soup.select("a[href*='/requisitions/'], a[href*='/job/']"):
-        title = a.get_text(" ", strip=True)
-        href  = a.get("href") or ""
-        if not title or not href: 
-            continue
-        if href.startswith("/"):
-            href = urljoin(base, href)
-        # nearby location tag
-        loc = None
-        for p in (a.parent, a.find_parent("li"), a.find_parent("article"), a.find_parent("div")):
-            if not p: continue
-            tag = p.select_one(".job-location, .location, [data-automation-id='locations']")
-            if tag:
-                loc = tag.get_text(" ", strip=True)
-                break
-        key = (title, href)
-        if key in seen: 
-            continue
-        seen.add(key)
-        jobs.append({"title": title, "location": loc, "detail_url": href, "description": None, "req_id": None, "posted": None})
-    return jobs
-
-def _json_search(session: requests.Session, site_base: str):
+def _site_alias(endpoint_url: str) -> str | None:
     """
-    Try the documented CE JSON endpoint first. Some tenants require a prior GET
-    to set cookies. We set Referer so the POST isn't dropped.
+    Extract the CandidateExperience site alias from a URL like:
+    https://<tenant>/hcmUI/CandidateExperience/en/sites/<ALIAS>/requisitions
     """
-    url = urljoin(site_base if site_base.endswith("/") else site_base + "/", "rest/api/jobs/search")
-    payload = {"keyword":"", "location":"India", "locationLevel":"country", "page":1}
-    headers = {**AJAX, "Referer": site_base}
-    r = session.post(url, headers=headers, data=json.dumps(payload), timeout=45)
-    if r.ok and r.headers.get("content-type","").startswith("application/json"):
-        return r.json()
-    # fallback GET with querystring (some tenants only allow GET)
-    qs = urlencode({"keyword":"", "location":"India", "locationLevel":"country", "page":1})
-    r2 = session.get(f"{url}?{qs}", headers=headers, timeout=45)
-    if r2.ok and r2.headers.get("content-type","").startswith("application/json"):
-        return r2.json()
-    return None
+    try:
+        p = urlparse(endpoint_url).path.strip("/").split("/")
+        i = p.index("sites")
+        return p[i+1]
+    except Exception:
+        return None
 
-def fetch(endpoint_url: str, max_pages: int = 6):
-    # endpoint is ".../hcmUI/CandidateExperience/en/sites/<SITE>/requisitions"
-    site_base = endpoint_url.rsplit("/requisitions", 1)[0]
-    all_jobs = []
+def _detail_url(base_candidate_url: str, site_alias: str, req_id: str) -> str:
+    # canonical candidate detail
+    return f"{base_candidate_url.rstrip('/')}/preview/{req_id}"
 
-    with requests.Session() as s:
-        # warm cookies
-        s.get(site_base, headers=BASE, timeout=45)
+def fetch(endpoint_url: str,
+          site_number: str,
+          limit: int = DEFAULT_LIMIT,
+          max_pages: int = DEFAULT_PAGES,
+          india_only: bool = True):
+    """
+    Pull jobs from Oracle Recruiting 'recruitingCEJobRequisitions' using the 'findReqs' finder.
+    Requires the correct site_number (e.g. CX_3002).
+    Docs: finder=findReqs;siteNumber=..., with &limit &offset for paging.
+    """
+    base_host = _host_base(endpoint_url)
+    api = f"{base_host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions"
 
-        # JSON first
-        try:
-            js = _json_search(s, site_base)
-            if js and js.get("jobs"):
-                for it in js["jobs"]:
-                    all_jobs.append({
-                        "title": it.get("title"),
-                        "location": it.get("location"),
-                        "detail_url": urljoin(site_base, it.get("jobUrl") or ""),
-                        "description": None,
-                        "req_id": it.get("RequisitionNumber") or it.get("Id"),
-                        "posted": it.get("postedDate"),
-                    })
-                return all_jobs
-        except Exception:
-            pass
+    site_alias = _site_alias(endpoint_url)
+    base_candidate = None
+    if site_alias:
+        base_candidate = f"{base_host}/hcmUI/CandidateExperience/en/sites/{site_alias}/requisitions"
 
-        # HTML fallback with explicit India filters + pagination
-        for p in range(1, max_pages+1):
-            sep = "&" if "?" in endpoint_url else "?"
-            url = f"{endpoint_url}{sep}location=India&locationLevel=country&page={p}"
-            r = s.get(url, headers=BASE, timeout=45)
-            if not r.ok:
-                break
-            batch = _parse_html(r.text, site_base)
-            if not batch:
-                break
-            all_jobs.extend(batch)
-            time.sleep(0.4)
+    out = []
+    session = requests.Session()
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    }
 
-    return all_jobs
+    offset = 0
+    for _ in range(max_pages):
+        params = {
+            "onlyData": "true",
+            # keep finder simple; use root limit/offset for consistent paging
+            "finder": f"findReqs;siteNumber={site_number},facetsList=NONE",
+            "limit": str(limit),
+            "offset": str(offset),
+            # optional: expand secondary locations if you want
+            # "expand": "requisitionList.secondaryLocations",
+        }
+        r = session.get(api, headers=headers, params=params, timeout=TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+
+        # Shape: { items: [{ requisitionList: [...] }], hasMore, count, offset, limit, ... }
+        items = (data or {}).get("items") or []
+        if not items:
+            break
+
+        reqs = []
+        for blk in items:
+            reqs.extend(blk.get("requisitionList") or [])
+
+        if not reqs:
+            break
+
+        for j in reqs:
+            try:
+                title = (j.get("Title") or "").strip()
+                req_id = str(j.get("Id"))
+                primary_country = (j.get("PrimaryLocationCountry") or "").strip()
+                location = (j.get("PrimaryLocation") or "").strip() or None
+                posted = j.get("PostedDate")  # ISO-like YYYY-MM-DD
+
+                if india_only:
+                    # Prefer structured country flag; fallback to text contains 'India'
+                    if primary_country != "IN" and (not location or "india" not in location.lower()):
+                        continue
+
+                detail_url = None
+                if base_candidate and req_id:
+                    detail_url = _detail_url(base_candidate, site_alias, req_id)
+                else:
+                    # fallback to tenant preview pattern if alias unknown
+                    detail_url = f"{base_host}/hcmUI/CandidateExperience/en/sites/CX/requisitions/preview/{req_id}"
+
+                out.append({
+                    "title": title,
+                    "location": location or ("India" if india_only else None),
+                    "detail_url": detail_url,
+                    "description": None,
+                    "req_id": req_id,
+                    "posted": posted,
+                })
+            except Exception:
+                continue
+
+        # stop if API reports no more
+        has_more = bool(data.get("hasMore"))
+        if not has_more:
+            break
+        offset += limit
+        time.sleep(0.5)
+
+    return out

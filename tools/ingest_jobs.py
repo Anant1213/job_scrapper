@@ -55,8 +55,16 @@ def run_from_sources_csv():
                         max_pages=int(params.get("max_pages", 6)),
                         india_only=bool(params.get("india_only", True)),
                     )
+                # tools/ingest_jobs.py  (inside run_from_sources_csv loop)
                 elif kind == "oracle_cx":
-                    fetched = fetch_oracle(endpoint_url=endpoint, max_pages=int(params.get("max_pages", 6)))
+                    data = fetch_oracle(
+                        endpoint,
+                        site_number=params.get("site_number"),
+                        limit=int(params.get("limit", 200)),
+                        max_pages=int(params.get("max_pages", 10)),
+                        india_only=bool(params.get("india_only", True)),
+                    )
+
                 elif kind == "citi_custom":
                     fetched = fetch_citi(india_base_url=endpoint, max_pages=int(params.get("max_pages", 10)))
                 elif kind == "taleo_tgnewui":
