@@ -1,93 +1,170 @@
-# config/sites.yaml
-# Add/adjust entries as you share job page URLs.
-sites:
-  # EXAMPLE 1 — Citi India list (static HTML)
-  - company: Citi
-    active: true
-    url: "https://jobs.citi.com/search-jobs/India/287/1?page=1"
-    render: false
-    max_pages: 10
-    page_param: "page"
-    force_india: true
-    selectors:
-      card: "li, article"              # be broad, we filter below
-      title: "a"
-      link: "a"
-      location: ".job-location, .location, [data-ph-at-text='location']"
-      posted: ""
+# ===== Direct-sites scraping (India only) =====
+# Notes:
+#  - render:true uses Playwright (JS sites). render:false = simple HTML fetch.
+#  - page_param is used only if the site really supports ?page=…  (safe to keep 1–5)
+#  - If a site still times out, keep render:true and we’ll tune wait_for.
 
-  # EXAMPLE 2 — Goldman Sachs higher.gs (JS-heavy → Playwright)
-  - company: Goldman Sachs
-    active: true
-    url: "https://higher.gs.com/results?search=&sort=RELEVANCE&page=1"
-    render: true
-    max_pages: 5
-    wait_for: "div[class*='ResultList']"
-    next_selector: "button[aria-label='Next']"
-    force_india: true            # page is global; we only keep India below anyway
-    selectors:
-      card: "a[href*='/job/'], a[href*='/jobs/'], div[data-test*='result-card']"
-      title: "h3, .result-title, a"
-      link: "a"
-      location: ".location, [data-test='job-location']"
-      posted: ""
+# Morgan Stanley — Eightfold
+- company: Morgan Stanley
+  active: true
+  url: "https://morganstanley.eightfold.ai/careers?source=mscom&start=0&location=india&pid=549793920009&sort_by=distance&filter_include_remote=1"
+  render: true
+  max_pages: 5
+  wait_for: "a[href*='/job/']"
+  page_param: "start"          # Eightfold uses ?start=0,25,50…
+  step: 25
+  force_india: true
+  selectors:
+    card: "a[href*='/job/']"
+    title: "a[href*='/job/']"
+    link:  "a[href*='/job/']"
+    location: "[class*='location'], [data-testid*='location']"
 
-  # EXAMPLE 3 — Nomura India (static HTML; already works)
-  - company: Nomura
-    active: true
-    url: "https://careers.nomura.com/Nomura/go/Career-Opportunities-India/9050900/"
-    render: false
-    max_pages: 1
-    force_india: true
-    selectors:
-      card: "a[href*='/Nomura/job/']"
-      title: "a"
-      link: "a"
-      location: ".jobLocation, .location, .job-location"
-      posted: ""
+# Goldman Sachs — Higher
+- company: Goldman Sachs
+  active: true
+  url: "https://higher.gs.com/results?LOCATION=Bengaluru|Hyderabad|Mumbai&page=1&sort=RELEVANCE"
+  render: true
+  max_pages: 5
+  wait_for: "a[href^='/roles/']"
+  page_param: "page"
+  force_india: true
+  selectors:
+    card: "a[href^='/roles/']"
+    title: "a[href^='/roles/']"
+    link:  "a[href^='/roles/']"
+    location: "div:has(> svg[aria-label*='Location']), [class*='location'], .css-1h8c9ny"
 
-  # EXAMPLE 4 — UBS Taleo (server-rendered search)
-  - company: UBS
-    active: true
-    url: "https://jobs.ubs.com/TGnewUI/Search/home/HomeWithPreLoad?partnerid=25008&siteid=5012&PageType=searchResults&SearchType=linkquery&LinkID=4138&locationSearch=India"
-    render: false
-    max_pages: 1
-    force_india: true
-    selectors:
-      card: "a[href*='JobDetail/']"
-      title: "a"
-      link: "a"
-      location: ".jobLocation, .location, .job-location"
-      posted: ""
+# JPMorgan Chase — public jobs list
+- company: JPMorgan Chase
+  active: true
+  url: "https://careers.jpmorganchase.com/en/jobs?query=&location=India"
+  render: true
+  max_pages: 5
+  wait_for: "a[href^='/en/jobs/'], a[href*='/job/']"
+  page_param: "page"
+  force_india: true
+  selectors:
+    card: "a[href^='/en/jobs/'], a[href*='/job/']"
+    title: "a[href^='/en/jobs/'], a[href*='/job/']"
+    link:  "a[href^='/en/jobs/'], a[href*='/job/']"
+    location: "[aria-label*='Location'], .job-location, [data-test*='location']"
 
-  # EXAMPLE 5 — JPM (JS-heavy). We’ll use Playwright to render.
-  - company: JPMorgan Chase
-    active: true
-    url: "https://careers.jpmorganchase.com/en/jobs?query=&location=India"
-    render: true
-    max_pages: 5
-    wait_for: "div[class*='job-results'], li a[href*='/job/']"
-    next_selector: "button[aria-label='Next']"
-    force_india: true
-    selectors:
-      card: "li a[href*='/job/'], div[class*='job-card']"
-      title: "h3, .job-title, a"
-      link: "a"
-      location: ".job-location, .location, [data-automation-id='locations']"
-      posted: ""
+# Citi — already working well (static)
+- company: Citi
+  active: true
+  url: "https://jobs.citi.com/search-jobs?k=&l=India&orgIds=287"
+  render: false
+  max_pages: 5
+  page_param: "page"
+  force_india: true
+  selectors:
+    card: "a[href*='/job/']"
+    title: "a[href*='/job/']"
+    link:  "a[href*='/job/']"
+    location: ".location, [class*='Location']"
 
-  # EXAMPLE 6 — BNY Mellon (JS-heavy)
-  - company: BNY Mellon
-    active: true
-    url: "https://www.bnymellon.com/us/en/careers/search-jobs.html?countries=India"
-    render: true
-    max_pages: 5
-    wait_for: "div[class*='search-results'], a[href*='/job/']"
-    next_selector: "button[aria-label='Next'], .pagination-next"
-    force_india: true
-    selectors:
-      card: "a[href*='/job/'], div[class*='job-result']"
-      title: "h3, .job-title, a"
-      link: "a"
-      location: ".job-location, .location"
-      posted: ""
+# Barclays — search.jobs (JS)
+- company: Barclays
+  active: true
+  url: "https://search.jobs.barclays/search-jobs?k=&l=India&orgIds=13015"
+  render: true
+  max_pages: 5
+  wait_for: "a[href*='/job/']"
+  page_param: "page"
+  force_india: true
+  selectors:
+    card: "a[href*='/job/']"
+    title: "a[href*='/job/']"
+    link:  "a[href*='/job/']"
+    location: ".job-location, .location, [class*='Location']"
+
+# HSBC — Avature
+- company: HSBC
+  active: true
+  url: "https://mycareer.hsbc.com/en_GB/external/SearchJobs/?1017=%5B%2267213%22%5D&1017_table_86_3=2&listFilterMode=1&pipelineRecordsPerPage=10"
+  render: true
+  max_pages: 5
+  wait_for: "a[href*='/SearchJobs/Job/']"
+  page_param: "page"
+  force_india: true
+  selectors:
+    card: "a[href*='/SearchJobs/Job/']"
+    title: "a[href*='/SearchJobs/Job/']"
+    link:  "a[href*='/SearchJobs/Job/']"
+    location: ".job-location, .location, [class*='Location']"
+
+# UBS — Taleo TGNewUI fragment (reliable)
+- company: UBS
+  active: true
+  url: "https://jobs.ubs.com/TGnewUI/Search/SearchResults?partnerid=25008&siteid=5012&keywords=&locationsearch=India&startrow=0"
+  render: false
+  max_pages: 10
+  page_param: "startrow"   # increments by 25
+  step: 25
+  force_india: true
+  selectors:
+    card: "table#searchresults tbody tr:not(.header)"
+    title: "td a"
+    link:  "td a"
+    location: "td:nth-last-child(2)"
+
+# Wells Fargo — public site (JS)
+- company: Wells Fargo
+  active: true
+  url: "https://www.wellsfargojobs.com/en/jobs/?search=&country=India"
+  render: true
+  max_pages: 5
+  wait_for: "a[href*='/job/']"
+  page_param: "page"
+  force_india: true
+  selectors:
+    card: "a[href*='/job/']"
+    title: "a[href*='/job/']"
+    link:  "a[href*='/job/']"
+    location: ".location, [class*='Location'], [aria-label*='Location']"
+
+# Standard Chartered — SuccessFactors
+- company: Standard Chartered
+  active: true
+  url: "https://jobs.standardchartered.com/content/Search-Result-Page/?keyword=&region=Asia&market=IN&area_of_interest=&job_type=&employment_type=professional_hires&work_type=&date_posted="
+  render: true
+  max_pages: 5
+  wait_for: "a[href*='/job/'], a[class*='job-title']"
+  page_param: "page"
+  force_india: true
+  selectors:
+    card: "a[href*='/job/'], a[class*='job-title']"
+    title: "a[href*='/job/'], a[class*='job-title']"
+    link:  "a[href*='/job/'], a[class*='job-title']"
+    location: ".job-location, .location, [class*='Location']"
+
+# BNP Paribas
+- company: BNP Paribas
+  active: true
+  url: "https://group.bnpparibas/en/careers/all-job-offers/india"
+  render: true
+  max_pages: 5
+  wait_for: "a[href*='/offer/'], a[href*='/job']"
+  page_param: "page"
+  force_india: true
+  selectors:
+    card: "a[href*='/offer/'], a[href*='/job']"
+    title: "a[href*='/offer/'], a[href*='/job']"
+    link:  "a[href*='/offer/'], a[href*='/job']"
+    location: ".location, [class*='Location']"
+
+# Société Générale
+- company: Société Générale
+  active: true
+  url: "https://careers.societegenerale.com/en/search?refinementList[jobLocation][0]=IND"
+  render: true
+  max_pages: 5
+  wait_for: "a[href^='/en/offer/'], a[href*='/job/']"
+  page_param: "page"
+  force_india: true
+  selectors:
+    card: "a[href^='/en/offer/'], a[href*='/job/']"
+    title: "a[href^='/en/offer/'], a[href*='/job/']"
+    link:  "a[href^='/en/offer/'], a[href*='/job/']"
+    location: ".location, [class*='Location']"
