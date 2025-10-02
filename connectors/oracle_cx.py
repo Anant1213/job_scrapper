@@ -12,10 +12,7 @@ def _host_base(endpoint_url: str) -> str:
     return f"{u.scheme}://{u.netloc}"
 
 def _site_alias(endpoint_url: str) -> str | None:
-    """
-    Extracts the CandidateExperience site alias from:
-    https://<tenant>/hcmUI/CandidateExperience/en/sites/<ALIAS>/requisitions
-    """
+    # extracts the CandidateExperience alias from: .../en/sites/<ALIAS>/requisitions
     try:
         p = urlparse(endpoint_url).path.strip("/").split("/")
         i = p.index("sites")
@@ -24,7 +21,6 @@ def _site_alias(endpoint_url: str) -> str | None:
         return None
 
 def _detail_url(base_host: str, site_alias: str, req_id: str) -> str:
-    # Canonical candidate preview detail URL
     return f"{base_host}/hcmUI/CandidateExperience/en/sites/{site_alias}/jobs/preview/{req_id}"
 
 def fetch(endpoint_url: str,
@@ -33,16 +29,15 @@ def fetch(endpoint_url: str,
           max_pages: int = DEFAULT_PAGES,
           india_only: bool = True):
     """
-    Fetch jobs from Oracle Recruiting CE using the documented finder:
-      GET /hcmRestApi/resources/latest/recruitingCEJobRequisitions
-          ?onlyData=true
-          &finder=findReqs;siteNumber=<SITE>;limit=<N>&offset=<K>
-    Ref: Oracle HCM REST docs for recruitingCEJobRequisitions (finder=findReqs + siteNumber).
+    Oracle Recruiting CE public REST:
+      /hcmRestApi/resources/latest/recruitingCEJobRequisitions
+         ?onlyData=true
+         &finder=findReqs;siteNumber=<SITE>;limit=<N>&offset=<K>
     """
     if not site_number:
-        raise ValueError("oracle_cx.fetch() requires site_number (e.g., 'CX_3002').")
+        raise ValueError("oracle_cx.fetch() requires site_number (e.g. 'CX_3002').")
 
-    base_host = _host_base(endpoint_url)  # e.g., https://hdpc.fa.us2.oraclecloud.com
+    base_host = _host_base(endpoint_url)
     api = f"{base_host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions"
 
     site_alias = _site_alias(endpoint_url) or "CX"
@@ -63,7 +58,6 @@ def fetch(endpoint_url: str,
             "finder": f"findReqs;siteNumber={site_number},facetsList=NONE",
             "limit": str(limit),
             "offset": str(offset),
-            # "expand": "requisitionList.secondaryLocations",  # optional
         }
         r = session.get(api, headers=headers, params=params, timeout=TIMEOUT)
         r.raise_for_status()
@@ -73,7 +67,6 @@ def fetch(endpoint_url: str,
         if not items:
             break
 
-        # Each item contains requisitionList[]
         reqs = []
         for blk in items:
             reqs.extend(blk.get("requisitionList") or [])
