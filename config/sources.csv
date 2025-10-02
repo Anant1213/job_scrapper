@@ -10,6 +10,7 @@ State Street,workday_cxs,https://statestreet.wd1.myworkdayjobs.com/wday/cxs/stat
 # Oracle CE (now with session + referer + HTML fallback)
 Goldman Sachs,oracle_cx,https://hdpc.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/LateralHiring/requisitions,{"site_number":"CX_3002","limit":200,"max_pages":15,"india_only":true},true
 
+
 JPMorgan Chase,oracle_cx,https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,{"max_pages":6},true
 BNY Mellon,oracle_cx,https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,{"max_pages":6},true
 

@@ -61,9 +61,10 @@ def run_from_sources_csv():
                         endpoint,
                         site_number=params.get("site_number"),
                         limit=int(params.get("limit", 200)),
-                        max_pages=int(params.get("max_pages", 10)),
+                        max_pages=int(params.get("max_pages", 15)),
                         india_only=bool(params.get("india_only", True)),
                     )
+
 
                 elif kind == "citi_custom":
                     fetched = fetch_citi(india_base_url=endpoint, max_pages=int(params.get("max_pages", 10)))
