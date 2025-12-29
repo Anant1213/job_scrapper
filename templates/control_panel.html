@@ -1,0 +1,75 @@
+<!-- CV Upload and Actions Control Panel -->
+<div class="control-panel" style="margin-bottom: 2rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border-radius: 16px; padding: 1.5rem; border: 1px solid rgba(99, 102, 241, 0.3);">
+    
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2 style="margin: 0; font-size: 1.5rem; background: linear-gradient(135deg, #6366f1, #8b5cf6); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            🎯 AI-Powered Job Matching
+        </h2>
+        <div id="cv-status-badge" style="display: none; padding: 0.5rem 1rem; background: rgba(34, 197, 94, 0.2); border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.4);">
+            <span style="color: #22c55e; font-weight: 600;">✓ CV Uploaded</span>
+        </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        
+        <!-- Left: CV Upload -->
+        <div class="cv-upload-section" style="background: rgba(0, 0, 0, 0.2); border-radius: 12px; padding: 1.5rem; border: 1px dashed rgba(99, 102, 241, 0.3);">
+            <h3 style="margin-top: 0; font-size: 1.1rem; color: #a78bfa;">📄 Upload Your CV</h3>
+            <p style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 1rem;">Upload your CV and let AI match jobs for you</p>
+            
+            <form id="cv-upload-form" enctype="multipart/form-data">
+                <div style="margin-bottom: 1rem;">
+                    <input type="file" id="cv-file-input" name="cv_file" accept=".pdf,.docx,.doc,.txt" 
+                           style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 8px; color: #fff; cursor: pointer;">
+                </div>
+                <button type="submit" id="upload-cv-btn" class="action-button" 
+                        style="width: 100%; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                    📤 Upload & Analyze CV
+                </button>
+            </form>
+            
+            <!-- CV Info -->
+            <div id="cv-info" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+                <div style="font-size: 0.85rem;">
+                    <div><strong>File:</strong> <span id="cv-filename"></span></div>
+                    <div><strong>Skills:</strong> <span id="cv-skills"></span></div>
+                    <div><strong>Experience:</strong> <span id="cv-experience"></span> years</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="actions-section" style="background: rgba(0, 0, 0, 0.2); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(139, 92, 246, 0.3);">
+            <h3 style="margin-top: 0; font-size: 1.1rem; color: #a78bfa;">⚙️ Actions</h3>
+            <p style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 1rem;">Scrape jobs or match with your CV</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <button id="run-scraper-btn" class="action-button"
+                        style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                    🔄 Scrape New Jobs
+                </button>
+                
+                <button id="match-jobs-btn" class="action-button" disabled
+                        style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s; opacity: 0.5;">
+                    🎯 Match Jobs with AI
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div id="progress-section" style="display: none; margin-top: 1.5rem; background: rgba(0, 0, 0, 0.3); border-radius: 12px; padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+            <span id="progress-text" style="font-weight: 600;">Processing...</span>
+            <span id="progress-percent">0%</span>
+        </div>
+        <div style="width: 100%; height: 8px; background: rgba(0, 0, 0, 0.3); border-radius: 4px;">
+            <div id="progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); transition: width 0.3s;"></div>
+        </div>
+        <div id="progress-detail" style="margin-top: 0.5rem; font-size: 0.85rem;"></div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/control-panel.js') }}"></script>

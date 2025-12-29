@@ -1,29 +1,31 @@
 company,kind,endpoint_url,params,active
-# Workday (most reliable)
-Barclays,workday_cxs,https://barclays.wd3.myworkdayjobs.com/wday/cxs/barclays/External/jobs,{"limit":50,"max_pages":6,"india_only":true},true
-Morgan Stanley,workday_cxs,https://ms.wd5.myworkdayjobs.com/wday/cxs/ms/External/jobs,{"limit":50,"max_pages":6,"india_only":true},true
-Deutsche Bank,workday_cxs,https://db.wd3.myworkdayjobs.com/wday/cxs/db/External/jobs,{"limit":50,"max_pages":6,"india_only":true},true
-Wells Fargo,workday_cxs,https://wf.wd1.myworkdayjobs.com/wday/cxs/wf/WellsFargoJobs/jobs,{"limit":50,"max_pages":6,"india_only":true},true
-Macquarie,workday_cxs,https://mq.wd3.myworkdayjobs.com/wday/cxs/mq/CareersatMQ/jobs,{"limit":50,"max_pages":6,"india_only":true},true
-State Street,workday_cxs,https://statestreet.wd1.myworkdayjobs.com/wday/cxs/statestreet/Global/jobs,{"limit":50,"max_pages":6,"india_only":true},true
+# =========================================
+# WORKING SOURCES (Verified Dec 2024)
+# =========================================
 
-# Oracle CE (now with session + referer + HTML fallback)
-Goldman Sachs,oracle_cx,https://hdpc.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/LateralHiring/requisitions,{"site_number":"CX_3002","limit":200,"max_pages":15,"india_only":true},true
+# Greenhouse API - Tech Companies with India Jobs
+Stripe,greenhouse,https://api.greenhouse.io/v1/boards/stripe/jobs,"{""india_only"":true}",true
+Coinbase,greenhouse,https://api.greenhouse.io/v1/boards/coinbase/jobs,"{""india_only"":true}",true
+Twilio,greenhouse,https://api.greenhouse.io/v1/boards/twilio/jobs,"{""india_only"":true}",true
+MongoDB,greenhouse,https://api.greenhouse.io/v1/boards/mongodb/jobs,"{""india_only"":true}",true
+Databricks,greenhouse,https://api.greenhouse.io/v1/boards/databricks/jobs,"{""india_only"":true}",true
+Figma,greenhouse,https://api.greenhouse.io/v1/boards/figma/jobs,"{""india_only"":true}",true
+Airbnb,greenhouse,https://api.greenhouse.io/v1/boards/airbnb/jobs,"{""india_only"":true}",true
 
+# Citi - Working with HTML scraping
+Citi,citi_custom,https://jobs.citi.com/search-jobs/India/287/1?page=1,"{""max_pages"":10}",true
 
-JPMorgan Chase,oracle_cx,https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,{"max_pages":6},true
-BNY Mellon,oracle_cx,https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,{"max_pages":6},true
+# BrassRing - Nomura Working
+Nomura,brassring_go,https://careers.nomura.com/Nomura/go/Career-Opportunities-India/9050900/,"{""max_pages"":6}",true
 
-# Citi / generic list
-Citi,citi_custom,https://jobs.citi.com/search-jobs/India/287/1?page=1,{"max_pages":10},true
+# =========================================
+# NEEDS FIXING (API changed or blocked)
+# =========================================
+# Workday CXS - Returns 400, needs browser rendering
+# Morgan Stanley,workday_cxs,https://ms.wd5.myworkdayjobs.com/wday/cxs/ms/External/jobs,"{""limit"":50}",false
+# Barclays,workday_cxs,https://barclays.wd3.myworkdayjobs.com/wday/cxs/barclays/External/jobs,"{""limit"":50}",false
+# Deutsche Bank,workday_cxs,https://db.wd3.myworkdayjobs.com/wday/cxs/db/External/jobs,"{""limit"":50}",false
 
-# Taleo TGNewUI (list page that server-renders)
-UBS,taleo_tgnewui,https://jobs.ubs.com/TGnewUI/Search/home/HomeWithPreLoad?partnerid=25008&siteid=5012&PageType=searchResults&SearchType=linkquery&LinkID=4138&locationSearch=India,{"max_pages":1},true
-
-Société Générale,taleo_tgnewui,https://careers.societegenerale.com/en/job-search-results?country=India,{"max_pages":1},true
-
-# BrassRing
-Nomura,brassring_go,https://careers.nomura.com/Nomura/go/Career-Opportunities-India/9050900/,{"max_pages":6},true
-
-# BNP group (HTML landing)
-BNP Paribas,bnpp_group,https://group.bnpparibas/en/careers/all-job-offers/india,{"max_pages":1},false
+# Oracle CX - Needs session/CORS
+# Goldman Sachs,oracle_cx,https://hdpc.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/LateralHiring/requisitions,"{""site_number"":""CX_3002""}",false
+# JPMorgan Chase,oracle_cx,https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions,"{""site_number"":""CX_1001""}",false

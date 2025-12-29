@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Scraper - Finance Jobs in India</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">💼</span>
+                <span class="logo-text">Job Scraper</span>
+            </div>
+
+            <nav class="nav">
+                <a href="/" class="nav-item active">
+                    <span class="nav-icon">📋</span>
+                    <span>All Jobs</span>
+                </a>
+                <a href="/?min_score=80" class="nav-item">
+                    <span class="nav-icon">⭐</span>
+                    <span>Top Matches</span>
+                </a>
+            </nav>
+
+            <div class="stats-card">
+                <h3>Statistics</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Total Jobs</span>
+                    <span class="stat-value">{{ stats.job_count }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Companies</span>
+                    <span class="stat-value">{{ stats.company_count }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">High Score (80+)</span>
+                    <span class="stat-value">{{ stats.high_score_count }}</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button id="runScraper" class="btn btn-primary btn-full">
+                    🔄 Run Scraper
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="header">
+                <h1>Finance Jobs in India</h1>
+                <p class="subtitle">{{ total }} jobs from {{ stats.company_count }} companies</p>
+            </header>
+
+            <!-- CV Upload & Actions Control Panel -->
+            {% include 'control_panel.html' %}
+
+            <!-- Filters -->
+            <div class="filters">
+                <form method="GET" action="/" class="filter-form">
+                    <div class="filter-group">
+                        <input type="text" name="search" placeholder="Search jobs, companies, locations..."
+                            value="{{ search }}" class="search-input">
+                    </div>
+
+                    <div class="filter-group">
+                        <select name="company" class="filter-select">
+                            <option value="">All Companies</option>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}" {% if company.id==company_id %}selected{% endif %}>
+                                {{ company.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <select name="min_score" class="filter-select">
+                            <option value="">Any Score</option>
+                            <option value="80" {% if min_score==80 %}selected{% endif %}>Score ≥ 80</option>
+                            <option value="60" {% if min_score==60 %}selected{% endif %}>Score ≥ 60</option>
+                            <option value="40" {% if min_score==40 %}selected{% endif %}>Score ≥ 40</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <select name="sort" class="filter-select">
+                            <option value="first_seen_at" {% if sort_by=='first_seen_at' %}selected{% endif %}>Newest
+                                First</option>
+                            <option value="relevance_score" {% if sort_by=='relevance_score' %}selected{% endif %}>
+                                Highest Score</option>
+                            <option value="posted_at" {% if sort_by=='posted_at' %}selected{% endif %}>Posted Date
+                            </option>
+                            <option value="title" {% if sort_by=='title' %}selected{% endif %}>Title A-Z</option>
+                        </select>
+                    </div>
+
+                    <input type="hidden" name="order" value="{{ sort_order }}">
+
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="/" class="btn btn-secondary">Clear</a>
+                </form>
+            </div>
+
+            <!-- Job List -->
+            <div class="job-list">
+                {% if jobs %}
+                {% for job in jobs %}
+                <div class="job-card {% if job.relevance_score and job.relevance_score >= 80 %}high-score{% endif %}">
+                    <div class="job-header">
+                        <div class="job-company">
+                            <span class="company-badge">{{ job.company_name }}</span>
+                            {% if job.ctc_predicted_pass %}
+                            <span class="ctc-badge" title="Expected ₹20+ LPA">💰</span>
+                            {% endif %}
+                        </div>
+                        {% if job.relevance_score %}
+                        <div
+                            class="job-score {% if job.relevance_score >= 80 %}score-high{% elif job.relevance_score >= 60 %}score-medium{% else %}score-low{% endif %}">
+                            {{ job.relevance_score }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <h3 class="job-title">
+                        <a href="{{ job.apply_url }}" target="_blank" rel="noopener">
+                            {{ job.title }}
+                        </a>
+                    </h3>
+
+                    <div class="job-meta">
+                        {% if job.location_city %}
+                        <span class="meta-item">
+                            <span class="meta-icon">📍</span>
+                            {{ job.location_city }}
+                        </span>
+                        {% endif %}
+
+                        {% if job.posted_at %}
+                        <span class="meta-item">
+                            <span class="meta-icon">📅</span>
+                            {{ job.posted_at[:10] if job.posted_at else 'N/A' }}
+                        </span>
+                        {% endif %}
+
+                        {% if job.remote %}
+                        <span class="meta-item remote-badge">
+                            <span class="meta-icon">🏠</span>
+                            Remote
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    {% if job.description %}
+                    <p class="job-description">
+                        {{ job.description[:200] }}{% if job.description|length > 200 %}...{% endif %}
+                    </p>
+                    {% endif %}
+
+                    <div class="job-actions">
+                        <a href="{{ job.apply_url }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+                            Apply Now →
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <h3>No jobs found</h3>
+                    <p>Try adjusting your filters or run the scraper to fetch new jobs.</p>
+                    <button id="runScraperEmpty" class="btn btn-primary">Run Scraper</button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="pagination">
+                {% if page > 1 %}
+                <a href="?page={{ page - 1 }}&search={{ search }}&company={{ company_id or '' }}&min_score={{ min_score or '' }}&sort={{ sort_by }}&order={{ sort_order }}"
+                    class="page-link">
+                    ← Previous
+                </a>
+                {% endif %}
+
+                <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+
+                {% if page < total_pages %} <a
+                    href="?page={{ page + 1 }}&search={{ search }}&company={{ company_id or '' }}&min_score={{ min_score or '' }}&sort={{ sort_by }}&order={{ sort_order }}"
+                    class="page-link">
+                    Next →
+                    </a>
+                    {% endif %}
+            </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h3>Running Scraper...</h3>
+            <p>This may take a few minutes</p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+
+</html>

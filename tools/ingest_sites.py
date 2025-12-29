@@ -1,33 +1,65 @@
 # tools/ingest_sites.py
-import sys, json, time, yaml
-from typing import Iterable
+"""
+Ingest jobs from career sites that require JavaScript rendering (Playwright).
+Uses sites.yaml for configuration.
+"""
+import sys
+import json
+import time
+import traceback
+from typing import Optional, List, Iterable
+
+try:
+    import yaml
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
+    print("Warning: PyYAML not installed. Run: pip install PyYAML")
+
 from tools.supabase_client import fetch_companies, upsert_jobs_raw, upsert_jobs
 from tools.normalize import normalize_job, india_location_ok
 from connectors.play_renderer import render_and_extract
 
+
 CFG_PATH = "config/sites.yaml"
 
-def _load_config() -> list[dict]:
+
+def _load_config() -> List[dict]:
+    """Load and parse sites.yaml configuration."""
+    if not YAML_AVAILABLE:
+        raise RuntimeError("PyYAML not installed. Run: pip install PyYAML")
+    
     with open(CFG_PATH, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
-    # accept either:
-    #  1) {"sites": [ ... ]}
-    #  2) [ ... ]
+    
+    # Accept either:
+    #  1) {"sites": [...]}
+    #  2) [...]
     if isinstance(cfg, dict) and "sites" in cfg and isinstance(cfg["sites"], list):
         return cfg["sites"]
     if isinstance(cfg, list):
         return cfg
-    raise ValueError(f"Unsupported YAML structure in {CFG_PATH}. "
-                     "Use a top-level list or a dict with 'sites' key.")
+    
+    raise ValueError(
+        f"Unsupported YAML structure in {CFG_PATH}. "
+        "Use a top-level list or a dict with 'sites' key."
+    )
 
-def _company_map(active_only=True) -> dict[str, int]:
-    return {c["name"]: c["id"]
-            for c in fetch_companies()
-            if (c.get("active") if active_only else True)}
 
-def _filter_companies(entries: list[dict], want: Iterable[str] | None) -> list[dict]:
+def _company_map(active_only: bool = True) -> dict:
+    """Build company name -> ID mapping."""
+    return {
+        c["name"]: c["id"]
+        for c in fetch_companies()
+        if (c.get("active") if active_only else True)
+    }
+
+
+def _filter_companies(entries: List[dict], want: Optional[Iterable[str]]) -> List[dict]:
+    """Filter entries to only include wanted companies."""
     if not want:
         return entries
+    
     wanted = {w.strip().lower() for w in want if w.strip()}
     out = []
     for e in entries:
@@ -36,13 +68,26 @@ def _filter_companies(entries: list[dict], want: Iterable[str] | None) -> list[d
             out.append(e)
     return out
 
-def run(companies_filter: list[str] | None = None):
-    sites = _load_config()
+
+def run(companies_filter: Optional[List[str]] = None):
+    """
+    Main entry point for sites ingestion.
+    
+    Args:
+        companies_filter: Optional list of company names to process (case-insensitive)
+    """
+    try:
+        sites = _load_config()
+    except Exception as e:
+        print(f"ERROR loading config: {e}")
+        return
+    
     if companies_filter:
         sites = _filter_companies(sites, companies_filter)
 
     companies = _company_map(active_only=True)
     total_jobs = 0
+    errors = 0
 
     for s in sites:
         company = (s.get("company") or "").strip()
@@ -59,6 +104,11 @@ def run(companies_filter: list[str] | None = None):
         if not url:
             print(f"! {company}: no url")
             continue
+        
+        # Skip inactive sites
+        if s.get("active") is False:
+            print(f"! {company}: site marked inactive")
+            continue
 
         wait_for = s.get("wait_for")
         next_selector = s.get("next_selector")
@@ -73,6 +123,7 @@ def run(companies_filter: list[str] | None = None):
             continue
 
         print(f"[{company}] site -> {url}")
+        
         try:
             rows = render_and_extract(
                 url=url,
@@ -87,7 +138,10 @@ def run(companies_filter: list[str] | None = None):
             )
         except Exception as e:
             print(f"  ! error scraping {company}: {e}")
-            # still record the attempt in jobs_raw
+            traceback.print_exc()
+            errors += 1
+            
+            # Record the error
             try:
                 upsert_jobs_raw(company_id, None, url, {"error": str(e)})
             except Exception:
@@ -103,7 +157,7 @@ def run(companies_filter: list[str] | None = None):
 
         print(f"  fetched: {pre}, kept (India): {len(kept_rows)}")
 
-        # normalize + de-dupe by canonical
+        # Normalize + de-dupe by canonical key
         dedup = {}
         for r in kept_rows:
             _, rec = normalize_job(
@@ -116,28 +170,31 @@ def run(companies_filter: list[str] | None = None):
                 posted_at=r.get("posted"),
             )
             key = rec.get("canonical_key")
-            # avoid ON CONFLICT looping in a single batch
             if key and key not in dedup:
                 dedup[key] = rec
 
+        # Record raw fetch
         try:
             upsert_jobs_raw(company_id, None, url, {"count": pre})
         except Exception as e:
             print(f"  ! jobs_raw upsert failed: {e}")
 
+        # Upsert normalized jobs
         try:
             n = upsert_jobs(company_id, list(dedup.values()))
             total_jobs += n
             print(f"  + upserted {n} jobs")
         except Exception as e:
             print(f"  ! jobs upsert failed: {e}")
+            traceback.print_exc()
 
         time.sleep(1)
 
-    print(f"Done. Upserted total {total_jobs} jobs.")
+    print(f"Done. Upserted total {total_jobs} jobs (errors: {errors}).")
+
 
 if __name__ == "__main__":
-    # optional: python -m tools.ingest_sites Morgan Stanley,Citi
+    # Optional: python -m tools.ingest_sites "Morgan Stanley,Citi"
     want = None
     if len(sys.argv) > 1:
         want = [p.strip() for p in sys.argv[1].split(",")]

@@ -8,13 +8,14 @@ on:
 jobs:
   seed-and-ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       PYTHONPATH: ${{ github.workspace }}
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,8 +25,16 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install deps
-        run: pip install requests beautifulsoup4
+      # FIX: Install ALL dependencies FIRST before running any scripts
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 lxml PyYAML
+          pip install -r requirements.txt
+
+      # FIX: Install Playwright BEFORE scripts that need it
+      - name: Install Playwright (Chromium)
+        run: python -m playwright install --with-deps chromium
 
       - name: Seed companies from config/firms.csv
         run: python -m tools.seed_companies
@@ -36,15 +45,5 @@ jobs:
       - name: Score & send Telegram alerts
         run: python -m tools.score_and_alert
 
-      - name: Install Playwright (Chromium)
-        run: |
-              python -m pip install --upgrade pip
-              pip install -r requirements.txt
-              python -m playwright install --with-deps chromium
-
-      - name: Ingest (Direct Sites)
-        env:
-            SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-            SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
-        run: | 
-                python -m tools.ingest_sites
+      - name: Ingest (Direct Sites via Playwright)
+        run: python -m tools.ingest_sites
